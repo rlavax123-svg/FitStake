@@ -1,0 +1,20 @@
+{
+  "name": "fitstake",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stake money on your running goals. Verified by Chainlink. Settled by smart contracts.",
+  "workspaces": [
+    "packages/contracts",
+    "packages/web",
+    "packages/cre"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w packages/web",
+    "build": "npm run build -w packages/web",
+    "test:contracts": "cd packages/contracts && forge test",
+    "test:cre": "cd packages/cre && cre workflow simulate"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

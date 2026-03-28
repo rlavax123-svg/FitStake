@@ -1,0 +1,10 @@
+{
+  "name": "@fitstake/cre",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chainlink CRE workflows for FitStake",
+  "scripts": {
+    "simulate": "cre workflow simulate",
+    "build": "cre workflow build"
+  }
+}
