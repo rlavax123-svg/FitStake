@@ -112,9 +112,12 @@ export async function POST(request: Request) {
         [BigInt(challengeId), [participantAddress], [BigInt(totalDistanceCm)]]
       )
 
-      // Auto-settle if challenge has expired
+      // Auto-settle if challenge has expired OR endurance goal reached
+      const challengeType = Number(challenge.challengeType)
+      const distanceGoalCm = Number(challenge.distanceGoalCm)
       const now = Math.floor(Date.now() / 1000)
-      if (now >= endTime) {
+      const shouldSettle = now >= endTime || (challengeType === 2 && totalDistanceCm >= distanceGoalCm)
+      if (shouldSettle) {
         try {
           await settleChallenge(challengeId)
         } catch (err) {

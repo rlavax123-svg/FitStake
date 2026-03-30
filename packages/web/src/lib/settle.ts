@@ -38,8 +38,11 @@ export async function settleChallenge(challengeId: number): Promise<SettleResult
     }
 
     const endTime = Number(challengeData.endTime)
+    const challengeType = Number(challengeData.challengeType)
     const now = Math.floor(Date.now() / 1000)
-    if (now < endTime) {
+
+    // Endurance can settle early — contract handles the check
+    if (challengeType !== 2 && now < endTime) {
       return { challengeId, status: 'skipped', reason: `not expired yet` }
     }
 
@@ -77,7 +80,6 @@ export async function settleChallenge(challengeId: number): Promise<SettleResult
       .maybeSingle()
 
     const stakeGbp = meta?.stake_gbp ?? 0
-    const challengeType = Number(challengeData.challengeType)
     const distanceGoalCm = Number(challengeData.distanceGoalCm)
     const participantCount = participants?.length ?? 0
     const totalPotGbp = stakeGbp * participantCount
@@ -117,6 +119,49 @@ export async function settleChallenge(challengeId: number): Promise<SettleResult
             isWinner: winners.length === 0 ? false : isWinner,
             payoutGbp: payout,
           })
+        }
+      } else if (challengeType === 2) {
+        // Endurance: first to goal wins. If both hit, higher distance wins. If neither, refund.
+        if (distanceMap.length === 2) {
+          const hitters = distanceMap.filter(d => d.distance >= distanceGoalCm)
+          if (hitters.length === 0) {
+            // Nobody hit goal — refund everyone
+            for (const d of distanceMap) {
+              results.push({
+                stravaId: d.stravaId, userId: d.userId, distanceCm: d.distance,
+                isWinner: false, payoutGbp: stakeGbp,
+              })
+            }
+          } else if (hitters.length === 1) {
+            // One winner
+            for (const d of distanceMap) {
+              const isWinner = d.distance >= distanceGoalCm
+              results.push({
+                stravaId: d.stravaId, userId: d.userId, distanceCm: d.distance,
+                isWinner, payoutGbp: isWinner ? distributableGbp : 0,
+              })
+            }
+          } else {
+            // Both hit goal — higher distance wins, tie = refund
+            const isTie = distanceMap[0].distance === distanceMap[1].distance
+            if (isTie) {
+              for (const d of distanceMap) {
+                results.push({
+                  stravaId: d.stravaId, userId: d.userId, distanceCm: d.distance,
+                  isWinner: false, payoutGbp: stakeGbp,
+                })
+              }
+            } else {
+              const winnerIdx = distanceMap[0].distance > distanceMap[1].distance ? 0 : 1
+              for (let i = 0; i < 2; i++) {
+                results.push({
+                  stravaId: distanceMap[i].stravaId, userId: distanceMap[i].userId,
+                  distanceCm: distanceMap[i].distance,
+                  isWinner: i === winnerIdx, payoutGbp: i === winnerIdx ? distributableGbp : 0,
+                })
+              }
+            }
+          }
         }
       } else {
         // HeadToHead

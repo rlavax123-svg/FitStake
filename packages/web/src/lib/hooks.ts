@@ -43,7 +43,7 @@ export interface Challenge {
 }
 
 export const STATE_LABELS = ['Open', 'Active', 'Verifying', 'Settled', 'Cancelled'] as const
-export const TYPE_LABELS = ['Group Goal', 'Head-to-Head'] as const
+export const TYPE_LABELS = ['Group Goal', 'Head-to-Head', 'Endurance Race'] as const
 
 // -------------------------------------------------------------------------
 // Hooks
