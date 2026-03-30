@@ -32,9 +32,13 @@ export default function BrowseChallenges() {
       .catch(() => {})
   }, [challenges])
 
+  const nowSec = Math.floor(Date.now() / 1000)
+
   const filtered = (challenges || []).filter((c) => {
     // Hide cancelled/settled
     if (c.state >= 3) return false
+    // Hide expired challenges that haven't been settled yet
+    if (c.state <= 1 && Number(c.endTime) <= nowSec) return false
     if (filter === 'group') return c.challengeType === 0
     if (filter === 'h2h') return c.challengeType === 1
     return true

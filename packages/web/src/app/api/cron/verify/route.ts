@@ -34,10 +34,66 @@ export async function GET(request: Request) {
     }) as any
 
     const state = Number(challenge.state)
-    if (state !== 1) continue // Only verify Active challenges
-
     const startTime = Number(challenge.startTime)
     const endTime = Number(challenge.endTime)
+    const participantCount = Number(challenge.participantCount)
+    const nowSec = Math.floor(Date.now() / 1000)
+
+    // Handle Created (state=0) challenges
+    if (state === 0) {
+      // Auto-cancel expired Created challenges with only 1 participant
+      if (nowSec >= endTime && participantCount <= 1) {
+        try {
+          await sendContractTxHash('cancelChallenge', [BigInt(i)])
+
+          // Refund the creator's GBP balance
+          const { data: meta } = await supabaseAdmin
+            .from('challenge_metadata')
+            .select('created_by, stake_gbp')
+            .eq('chain_challenge_id', i)
+            .maybeSingle()
+
+          if (meta?.created_by && meta.stake_gbp) {
+            const { data: creator } = await supabaseAdmin
+              .from('users')
+              .select('id, balance')
+              .eq('id', meta.created_by)
+              .single()
+
+            if (creator) {
+              const newBalance = (creator.balance ?? 0) + meta.stake_gbp
+              await supabaseAdmin
+                .from('users')
+                .update({ balance: newBalance })
+                .eq('id', creator.id)
+
+              await supabaseAdmin.from('transactions').insert({
+                user_id: creator.id,
+                type: 'refund',
+                amount: meta.stake_gbp,
+                chain_challenge_id: i,
+              })
+            }
+          }
+
+          results.push({ challengeId: i, status: 'auto-cancelled', participants: participantCount })
+        } catch (err) {
+          results.push({ challengeId: i, status: `cancel-error: ${err instanceof Error ? err.message : 'unknown'}` })
+        }
+      }
+      // Auto-activate Created challenges that have reached startTime with 2+ participants
+      else if (nowSec >= startTime && participantCount >= 2) {
+        try {
+          await sendContractTxHash('activateChallenge', [BigInt(i)])
+          results.push({ challengeId: i, status: 'auto-activated', participants: participantCount })
+        } catch (err) {
+          results.push({ challengeId: i, status: `activate-error: ${err instanceof Error ? err.message : 'unknown'}` })
+        }
+      }
+      continue
+    }
+
+    if (state !== 1) continue // Only verify Active challenges
 
     // Get participants from Supabase
     const { data: participants } = await supabaseAdmin
@@ -108,7 +164,6 @@ export async function GET(request: Request) {
     }
 
     // Auto-settle if challenge has expired
-    const nowSec = Math.floor(Date.now() / 1000)
     if (nowSec >= endTime) {
       try {
         const settleResult = await settleChallenge(i)

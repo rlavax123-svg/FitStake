@@ -112,7 +112,10 @@ function Dashboard() {
       .catch(() => {})
   }, [challenges])
 
-  const activeChallenges = (challenges || []).filter((c) => c.state <= 1)
+  const nowSec = Math.floor(Date.now() / 1000)
+  const activeChallenges = (challenges || []).filter(
+    (c) => c.state <= 1 && Number(c.endTime) > nowSec
+  )
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
