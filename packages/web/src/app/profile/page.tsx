@@ -142,9 +142,10 @@ export default function Profile() {
   const unitLabel = unit === 'mi' ? 'miles' : 'km'
 
   const formatTimeAgo = (dateStr: string) => {
-    const now = Date.now()
     const then = new Date(dateStr).getTime()
-    const diffMs = now - then
+    if (isNaN(then)) return 'Unknown'
+    const diffMs = Date.now() - then
+    if (diffMs < 0) return 'just now'
     const diffMin = Math.floor(diffMs / 60000)
     if (diffMin < 1) return 'just now'
     if (diffMin < 60) return `${diffMin}m ago`
@@ -291,7 +292,7 @@ export default function Profile() {
                 stake: { label: 'Staked', cls: 'bg-orange-500/10 text-orange-400' },
                 winnings: { label: 'Won', cls: 'bg-green-500/10 text-green-400' },
                 refund: { label: 'Refund', cls: 'bg-zinc-500/10 text-zinc-400' },
-              }[tx.type]
+              }[tx.type] ?? { label: tx.type, cls: 'bg-zinc-500/10 text-zinc-400' }
 
               const isPositive = tx.type !== 'stake'
               const absAmount = Math.abs(tx.amount).toFixed(2)
