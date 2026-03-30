@@ -313,7 +313,7 @@ export default function Profile() {
                             {tx.challenge_name}
                           </a>
                         ) : (
-                          'Balance top-up'
+                          tx.type === 'topup' ? 'Balance top-up' : `Challenge #${tx.chain_challenge_id}`
                         )}
                       </div>
                       <div className="text-xs text-zinc-500">{formatTimeAgo(tx.created_at)}</div>
