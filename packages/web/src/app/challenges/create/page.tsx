@@ -169,23 +169,27 @@ export default function CreateChallenge() {
       <fieldset className="mb-6">
         <legend className="text-sm font-semibold text-t2 mb-3">Challenge Type</legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {TYPES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setChallengeType(t.id as typeof challengeType)}
-              className={`card p-4 text-left transition-all ${
-                challengeType === t.id
-                  ? 'ring-2 ring-coral-500 border-coral-500/30'
-                  : 'hover:border-edge'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`w-2.5 h-2.5 rounded-full ${t.dot}`} />
-                <span className="font-display font-semibold text-sm text-t1">{t.name}</span>
-              </div>
-              <p className="text-xs text-t3 pl-[18px]">{t.desc}</p>
-            </button>
-          ))}
+          {TYPES.map((t) => {
+            const selected = challengeType === t.id
+            return (
+              <button
+                key={t.id}
+                onClick={() => setChallengeType(t.id as typeof challengeType)}
+                className={`p-4 text-left rounded-2xl border transition-all ${
+                  selected
+                    ? `bg-coral-500/10 border-coral-500 ring-2 ring-coral-500/30 shadow-md`
+                    : 'bg-surface border-edge hover:border-t3'
+                }`}
+                style={{ boxShadow: selected ? 'var(--shadow-md)' : undefined }}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`w-3 h-3 rounded-full ${selected ? 'ring-2 ring-coral-500/40' : ''} ${t.dot}`} />
+                  <span className={`font-display font-bold text-sm ${selected ? 'text-coral-600 dark:text-coral-400' : 'text-t1'}`}>{t.name}</span>
+                </div>
+                <p className={`text-xs pl-5 ${selected ? 'text-t1' : 'text-t3'}`}>{t.desc}</p>
+              </button>
+            )
+          })}
         </div>
       </fieldset>
 
