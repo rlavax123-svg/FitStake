@@ -54,6 +54,7 @@ export default function Profile() {
   const [challengesLoading, setChallengesLoading] = useState(false)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [txLoading, setTxLoading] = useState(false)
+  const [txExpanded, setTxExpanded] = useState(false)
 
   useEffect(() => {
     if (!authenticated) return
@@ -158,8 +159,29 @@ export default function Profile() {
 
   const totalKm = parseFloat(stats?.totalDistanceKm || '0')
   const weeklyAvg = totalKm / 4
-  const suggestedGoalKm = weeklyAvg > 30 ? 100 : weeklyAvg > 15 ? 50 : weeklyAvg > 5 ? 20 : 10
-  const suggestedGoal = `${kmToDisplay(suggestedGoalKm)} ${unitLabel}`
+  const suggestions = [
+    {
+      label: 'Easy',
+      desc: 'A comfortable goal you can hit without changing your routine',
+      km: weeklyAvg > 30 ? 50 : weeklyAvg > 15 ? 30 : weeklyAvg > 5 ? 15 : 5,
+      color: 'text-mint-500',
+      bg: 'bg-mint-50 dark:bg-mint-500/5 border-mint-200 dark:border-mint-500/20',
+    },
+    {
+      label: 'Challenging',
+      desc: "You'll need to stay consistent and push on a few runs",
+      km: weeklyAvg > 30 ? 100 : weeklyAvg > 15 ? 60 : weeklyAvg > 5 ? 30 : 15,
+      color: 'text-coral-500',
+      bg: 'bg-coral-50 dark:bg-coral-500/5 border-coral-200 dark:border-coral-500/20',
+    },
+    {
+      label: 'Ambitious',
+      desc: 'A real stretch — expect to dig deep and earn every km',
+      km: weeklyAvg > 30 ? 160 : weeklyAvg > 15 ? 100 : weeklyAvg > 5 ? 50 : 25,
+      color: 'text-red-500',
+      bg: 'bg-red-50 dark:bg-red-500/5 border-red-200 dark:border-red-500/20',
+    },
+  ]
 
   const validRuns = runs.filter((r) => !r.manual && !r.flagged)
   const invalidRuns = runs.filter((r) => r.manual || r.flagged)
@@ -209,17 +231,31 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Recommendation */}
+      {/* Recommendations */}
       {stats && (
-        <div className="card p-4 mb-6 border-coral-200 dark:border-coral-500/20 bg-coral-50 dark:bg-coral-500/5">
-          <p className="text-xs font-bold text-coral-600 dark:text-coral-400 uppercase tracking-wider mb-1">
-            Recommended
+        <div className="mb-6">
+          <h2 className="font-display text-lg font-bold text-t1 mb-1">Suggested Challenges</h2>
+          <p className="text-xs text-t3 mb-3">
+            Based on your {kmToDisplay(totalKm)} {unitLabel} this month
           </p>
-          <p className="text-sm text-t1">
-            Based on your runs, try a{' '}
-            <span className="font-display font-bold text-coral-500">{suggestedGoal} in 30 days</span>{' '}
-            challenge.
-          </p>
+          <div className="space-y-2 stagger">
+            {suggestions.map((s) => (
+              <a
+                key={s.label}
+                href={`/challenges/create`}
+                className={`card card-interactive block p-4 border ${s.bg}`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`font-display font-bold text-sm ${s.color}`}>{s.label}</span>
+                  <span className="font-display font-bold text-t1">
+                    {kmToDisplay(s.km)} {unitLabel}
+                    <span className="text-t3 font-normal text-xs"> in 30 days</span>
+                  </span>
+                </div>
+                <p className="text-xs text-t2">{s.desc}</p>
+              </a>
+            ))}
+          </div>
         </div>
       )}
 
@@ -294,7 +330,7 @@ export default function Profile() {
           </div>
         ) : (
           <div className="card divide-y divide-edge overflow-hidden">
-            {transactions.map((tx) => {
+            {(txExpanded ? transactions : transactions.slice(0, 5)).map((tx) => {
               const badge = {
                 topup: { label: 'Top-up', cls: 'bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' },
                 stake: { label: 'Staked', cls: 'bg-coral-100 dark:bg-coral-500/10 text-coral-600 dark:text-coral-400' },
@@ -339,6 +375,14 @@ export default function Profile() {
                 </div>
               )
             })}
+            {transactions.length > 5 && (
+              <button
+                onClick={() => setTxExpanded(!txExpanded)}
+                className="w-full p-3 text-sm font-semibold text-coral-500 hover:text-coral-600 hover:bg-coral-500/5 transition-colors text-center"
+              >
+                {txExpanded ? 'Show less' : `View all ${transactions.length} transactions`}
+              </button>
+            )}
           </div>
         )}
       </div>
