@@ -6,7 +6,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const error = searchParams.get('error')
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3002'
+  const url = new URL(request.url)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${url.protocol}//${url.host}`
 
   if (error || !code) {
     return NextResponse.redirect(`${baseUrl}/?error=strava_denied`)
