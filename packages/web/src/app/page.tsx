@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/use-auth'
-import { useAllChallenges, useEthPrice, ethToFiat, timeRemaining, STATE_LABELS } from '@/lib/hooks'
+import { useAllChallenges, useEthPrice, ethToFiat, timeRemaining, STATE_LABELS, TYPE_LABELS } from '@/lib/hooks'
 import { useUnits } from '@/lib/use-units'
 import Link from 'next/link'
+
+const TYPE_CLASSES = ['type-group', 'type-h2h', 'type-endurance', 'type-best', 'type-live'] as const
 
 export default function Home() {
   const { ready, authenticated, login } = useAuth()
@@ -12,7 +14,7 @@ export default function Home() {
   if (!ready) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse text-zinc-500">Loading...</div>
+        <div className="animate-pulse-soft text-t3">Loading...</div>
       </div>
     )
   }
@@ -24,75 +26,128 @@ export default function Home() {
   return <Dashboard />
 }
 
+/* ────────────────────────────────────────────────────────────── */
+/*  Landing Page                                                  */
+/* ────────────────────────────────────────────────────────────── */
+
 function LandingPage({ onLogin }: { onLogin: () => void }) {
   return (
-    <div className="max-w-5xl mx-auto px-4 py-20">
-      <div className="text-center mb-16">
-        <h1 className="text-5xl sm:text-6xl font-bold mb-4">
-          Bet on <span className="text-indigo-400">Your Runs</span>
-        </h1>
-        <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">
-          Stake money on your running goals. Complete the challenge and win. Fail and your stake goes
-          to the winners. No cheating — verified by Chainlink oracles.
-        </p>
-        <button
-          onClick={onLogin}
-          className="bg-[#FC4C02] hover:bg-[#e04400] text-white text-lg px-8 py-3 rounded-xl font-semibold transition inline-flex items-center gap-3"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
-          </svg>
-          Sign in with Strava
-        </button>
-        <p className="text-zinc-600 text-sm mt-3">Free to join. Connect your Strava to get started.</p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-16">
-        {[
-          {
-            step: '1',
-            title: 'Create or Join',
-            desc: 'Set a running goal and stake. Invite friends or join public challenges.',
-          },
-          {
-            step: '2',
-            title: 'Run',
-            desc: 'Track your runs with Strava. Our oracle verifies every activity automatically.',
-          },
-          {
-            step: '3',
-            title: 'Get Paid',
-            desc: "Hit your goal? You split the pot from those who didn't. Settled instantly.",
-          },
-        ].map((item) => (
-          <div
-            key={item.step}
-            className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center"
-          >
-            <div className="w-10 h-10 bg-indigo-600/20 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-3 font-bold">
-              {item.step}
-            </div>
-            <h3 className="font-semibold mb-1">{item.title}</h3>
-            <p className="text-sm text-zinc-400">{item.desc}</p>
+    <div className="max-w-5xl mx-auto px-4">
+      {/* Hero */}
+      <section className="py-16 sm:py-24 animate-fade-up">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-coral-500/10 text-coral-600 dark:text-coral-400 text-sm font-semibold mb-6">
+            <span className="w-1.5 h-1.5 bg-coral-500 rounded-full" />
+            Now in beta
           </div>
-        ))}
-      </div>
 
-      <div className="text-center text-zinc-500 text-sm">
-        <p>
-          Stakes held in smart contracts — not our database. Runs verified by Chainlink DON
-          consensus. Nobody can cheat. Not even us.
+          <h1 className="font-display text-4xl sm:text-6xl font-bold tracking-tight leading-[1.1] mb-5 text-t1">
+            Put your money
+            <br />
+            where your <span className="text-coral-500">miles</span> are
+          </h1>
+
+          <p className="text-lg sm:text-xl text-t2 max-w-lg mx-auto mb-8 leading-relaxed">
+            Stake real money on running challenges. Hit your goal and split the pot.
+            Fail and you lose your stake. No excuses.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={onLogin}
+              className="w-full sm:w-auto bg-[#FC4C02] hover:bg-[#e04400] text-white text-lg px-8 py-3.5 rounded-xl font-bold transition-colors inline-flex items-center justify-center gap-3 shadow-lg shadow-[#FC4C02]/20"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+              </svg>
+              Sign in with Strava
+            </button>
+            <span className="text-sm text-t3">Free to join. Takes 10 seconds.</span>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="pb-16 sm:pb-24">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 stagger">
+          {[
+            {
+              num: '01',
+              title: 'Stake it',
+              desc: 'Create or join a challenge. Choose your distance, timeframe, and how much you want to put on the line.',
+              accent: 'text-coral-500',
+            },
+            {
+              num: '02',
+              title: 'Run it',
+              desc: 'Track your runs with Strava like you already do. We verify every activity automatically — no manual logging.',
+              accent: 'text-blue-500',
+            },
+            {
+              num: '03',
+              title: 'Win it',
+              desc: "Hit your goal? You split the pot from those who didn't. Settled instantly to your balance.",
+              accent: 'text-mint-500',
+            },
+          ].map((step) => (
+            <div key={step.num} className="p-6 rounded-2xl" style={{ background: 'var(--surface)' }}>
+              <div className={`font-display text-3xl font-bold ${step.accent} mb-3`}>
+                {step.num}
+              </div>
+              <h3 className="font-display font-bold text-lg text-t1 mb-2">{step.title}</h3>
+              <p className="text-sm text-t2 leading-relaxed">{step.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Challenge Types */}
+      <section className="pb-16 sm:pb-24 animate-fade-up" style={{ animationDelay: '200ms' }}>
+        <h2 className="font-display text-2xl font-bold text-t1 mb-6 text-center">Five ways to compete</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {[
+            { name: 'Group Goal', desc: 'Hit the distance, split the pot', color: 'bg-blue-500' },
+            { name: 'Head-to-Head', desc: 'Most distance by deadline', color: 'bg-orange-500' },
+            { name: 'Endurance', desc: 'First to the distance', color: 'bg-purple-500' },
+            { name: 'Best Effort', desc: 'Fastest single run', color: 'bg-emerald-500' },
+            { name: 'Live Race', desc: 'Real-time GPS racing', color: 'bg-red-500' },
+          ].map((type) => (
+            <div
+              key={type.name}
+              className="p-4 rounded-xl text-center"
+              style={{ background: 'var(--surface)' }}
+            >
+              <div className={`w-3 h-3 ${type.color} rounded-full mx-auto mb-3`} />
+              <div className="font-display font-semibold text-sm text-t1">{type.name}</div>
+              <div className="text-xs text-t3 mt-1">{type.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Trust */}
+      <section className="pb-20 text-center">
+        <p className="text-sm text-t3 max-w-md mx-auto leading-relaxed">
+          Stakes held in smart contracts — not our database.
+          Runs verified by Strava GPS data.
+          Nobody can cheat. Not even us.
         </p>
-      </div>
+      </section>
     </div>
   )
 }
+
+/* ────────────────────────────────────────────────────────────── */
+/*  Dashboard                                                     */
+/* ────────────────────────────────────────────────────────────── */
 
 function Dashboard() {
   const { data: challenges, isLoading } = useAllChallenges()
   const { data: ethPrice } = useEthPrice()
   const { formatDistance, unit } = useUnits()
+  const { user } = useAuth()
   const [balance, setBalance] = useState<number | null>(null)
+  const [metadata, setMetadata] = useState<Record<number, { name: string; stakeGbp: number | null }>>({})
 
   useEffect(() => {
     fetch('/api/balance')
@@ -100,8 +155,6 @@ function Dashboard() {
       .then((d) => setBalance(d.balance ?? 0))
       .catch(() => {})
   }, [])
-
-  const [metadata, setMetadata] = useState<Record<number, { name: string; stakeGbp: number | null }>>({})
 
   useEffect(() => {
     if (!challenges || challenges.length === 0) return
@@ -117,77 +170,118 @@ function Dashboard() {
     (c) => c.state <= 1 && Number(c.endTime) > nowSec
   )
 
+  const firstName = user?.name?.split(' ')[0] || 'Runner'
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-6">
-        <div className="text-sm text-zinc-400 mb-1">FitStake</div>
-        <div className="text-xl font-bold text-zinc-100">Your Dashboard</div>
-        <p className="text-sm text-zinc-500 mt-1">
-          {balance !== null && <span className="text-green-400 font-medium">£{balance.toFixed(2)}</span>}
-          {balance !== null && ' · '}
-          {activeChallenges.length} active challenge{activeChallenges.length !== 1 ? 's' : ''}
-        </p>
+    <div className="max-w-5xl mx-auto px-4 py-6 sm:py-8 animate-fade-up">
+      {/* Greeting + Balance */}
+      <div className="flex items-end justify-between mb-8">
+        <div>
+          <p className="text-sm text-t3 mb-1">Welcome back</p>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-t1">{firstName}</h1>
+        </div>
+        {balance !== null && (
+          <div className="text-right">
+            <p className="text-xs text-t3 mb-0.5">Balance</p>
+            <p className="font-display text-2xl font-bold text-mint-500">£{balance.toFixed(2)}</p>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 gap-3 mb-8">
         <Link
           href="/challenges/create"
-          className="bg-indigo-600/10 border border-indigo-600/30 hover:border-indigo-500 rounded-xl p-4 text-center transition"
+          className="card card-interactive p-5 flex flex-col items-start gap-2"
         >
-          <div className="text-2xl mb-1">+</div>
-          <div className="font-medium text-indigo-400">Create Challenge</div>
+          <div className="w-10 h-10 bg-coral-500/10 rounded-xl flex items-center justify-center">
+            <svg className="w-5 h-5 text-coral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </div>
+          <span className="font-display font-semibold text-t1">Create Challenge</span>
+          <span className="text-xs text-t3">Set a goal, stake money</span>
         </Link>
         <Link
           href="/challenges"
-          className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl p-4 text-center transition"
+          className="card card-interactive p-5 flex flex-col items-start gap-2"
         >
-          <div className="text-2xl mb-1">🔍</div>
-          <div className="font-medium text-zinc-300">Browse Challenges</div>
+          <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
+            <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+          </div>
+          <span className="font-display font-semibold text-t1">Browse Challenges</span>
+          <span className="text-xs text-t3">Find something to join</span>
         </Link>
       </div>
 
+      {/* Active Challenges */}
       <div>
-        <h2 className="text-lg font-semibold mb-3">Active Challenges</h2>
+        <h2 className="font-display text-lg font-bold text-t1 mb-3">Active Challenges</h2>
         {isLoading ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
-            <p className="text-zinc-500 animate-pulse">Loading challenges...</p>
-          </div>
-        ) : activeChallenges.length > 0 ? (
-          <div className="space-y-3">
-            {activeChallenges.map((c) => (
-              <Link
-                key={c.id}
-                href={`/challenges/${c.id}`}
-                className="block bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl p-4 transition"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{metadata[c.id]?.name || `Challenge #${c.id}`}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        c.state === 0 ? 'bg-blue-500/10 text-blue-400' : 'bg-green-500/10 text-green-400'
-                      }`}>
-                        {STATE_LABELS[c.state]}
-                      </span>
-                    </div>
-                    <p className="text-sm text-zinc-400">
-                      {formatDistance(c.distanceGoalCm)} {unit} &middot;{' '}
-                      {c.state === 0 && Number(c.startTime) > nowSec
-                        ? `Joining open · Starts ${timeRemaining(c.startTime)}`
-                        : timeRemaining(c.endTime)}
-                    </p>
-                  </div>
-                  <div className="text-green-400 font-medium">{ethToFiat(c.totalStaked, ethPrice)}</div>
-                </div>
-              </Link>
+          <div className="space-y-3 stagger">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="card p-4 animate-pulse-soft">
+                <div className="h-5 bg-edge-subtle rounded w-1/3 mb-2" />
+                <div className="h-4 bg-edge-subtle rounded w-1/2" />
+              </div>
             ))}
           </div>
+        ) : activeChallenges.length > 0 ? (
+          <div className="space-y-3 stagger">
+            {activeChallenges.map((c) => {
+              const typeClass = TYPE_CLASSES[c.challengeType] || 'type-group'
+              return (
+                <Link
+                  key={c.id}
+                  href={`/challenges/${c.id}`}
+                  className={`card card-interactive accent-stripe ${typeClass} block p-4 pl-5`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-display font-bold text-t1">
+                          {metadata[c.id]?.name || `Challenge #${c.id}`}
+                        </span>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            c.state === 0
+                              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                              : 'bg-mint-50 text-mint-600 dark:bg-mint-500/10 dark:text-mint-400'
+                          }`}
+                        >
+                          {STATE_LABELS[c.state]}
+                        </span>
+                      </div>
+                      <p className="text-sm text-t2">
+                        {formatDistance(c.distanceGoalCm)} {unit}
+                        <span className="text-t3"> · </span>
+                        {c.state === 0 && Number(c.startTime) > nowSec
+                          ? `Starts ${timeRemaining(c.startTime)}`
+                          : timeRemaining(c.endTime)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-display font-bold text-mint-500">
+                        {metadata[c.id]?.stakeGbp
+                          ? `£${(metadata[c.id].stakeGbp! * Number(c.participantCount)).toFixed(2)}`
+                          : ethToFiat(c.totalStaked, ethPrice)}
+                      </div>
+                      <div className="text-xs text-t3">pot</div>
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
         ) : (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
-            <p className="text-zinc-500 mb-3">No active challenges yet</p>
+          <div className="card p-8 text-center">
+            <p className="text-t3 mb-1">No active challenges yet</p>
             <Link
               href="/challenges/create"
-              className="text-indigo-400 hover:text-indigo-300 text-sm transition"
+              className="text-coral-500 hover:text-coral-600 text-sm font-semibold transition-colors"
             >
               Create your first challenge
             </Link>

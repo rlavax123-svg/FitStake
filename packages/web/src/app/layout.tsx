@@ -1,24 +1,25 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Space_Grotesk, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { Nav } from '@/components/nav'
 import { ErrorBoundary } from '@/components/error-boundary'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const spaceGrotesk = Space_Grotesk({
+  variable: '--font-space-grotesk',
   subsets: ['latin'],
+  weight: ['500', '600', '700'],
 })
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: '--font-plus-jakarta',
   subsets: ['latin'],
 })
 
 export const metadata: Metadata = {
   title: 'FitStake — Bet on Your Runs',
   description:
-    'Stake money on your running goals. Complete the challenge and win. Verified by Chainlink. Settled by smart contracts.',
+    'Stake money on your running goals. Complete the challenge and win. Verified by Strava. Settled by smart contracts.',
 }
 
 export default function RootLayout({
@@ -27,14 +28,18 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
-    >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">
+    <html lang="en" className={`${spaceGrotesk.variable} ${plusJakarta.variable} h-full`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('fitstake-theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark')}catch(e){}})()`,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col">
         <Providers>
           <Nav />
-          <main className="flex-1">
+          <main className="flex-1 pb-20 sm:pb-0">
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
         </Providers>

@@ -14,6 +14,9 @@ interface RaceParticipant {
   updatedAt: string
 }
 
+const RUNNER_COLORS = ['bg-coral-500', 'bg-blue-500'] as const
+const RUNNER_BAR_COLORS = ['bg-coral-500', 'bg-blue-500'] as const
+
 export default function RacePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = use(params)
   const id = parseInt(idStr)
@@ -32,34 +35,32 @@ export default function RacePage({ params }: { params: Promise<{ id: string }> }
   const watchIdRef = useRef<number | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Poll race state every 2 seconds
   useEffect(() => {
     if (!authenticated) return
     const poll = () => {
       fetch(`/api/race/state?challengeId=${id}`)
-        .then(r => r.json())
-        .then(d => {
+        .then((r) => r.json())
+        .then((d) => {
           if (d.participants) setParticipants(d.participants)
         })
         .catch(() => {})
     }
     poll()
     pollRef.current = setInterval(poll, 2000)
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
   }, [id, authenticated])
 
-  // Check if all ready
   useEffect(() => {
-    if (participants.length >= 2 && participants.every(p => p.isReady)) {
+    if (participants.length >= 2 && participants.every((p) => p.isReady)) {
       if (!allReady) {
         setAllReady(true)
-        // Start countdown
         setCountdown(3)
       }
     }
   }, [participants, allReady])
 
-  // Countdown timer
   useEffect(() => {
     if (countdown === null) return
     if (countdown <= 0) {
@@ -71,7 +72,6 @@ export default function RacePage({ params }: { params: Promise<{ id: string }> }
     return () => clearTimeout(t)
   }, [countdown])
 
-  // Start GPS tracking when race starts
   useEffect(() => {
     if (!raceStarted || finished) return
     if (!navigator.geolocation) {
@@ -79,9 +79,8 @@ export default function RacePage({ params }: { params: Promise<{ id: string }> }
       return
     }
 
-    // Request wake lock to keep screen on
     if ('wakeLock' in navigator) {
-      (navigator as any).wakeLock.request('screen').catch(() => {})
+      ;(navigator as any).wakeLock.request('screen').catch(() => {})
     }
 
     watchIdRef.current = navigator.geolocation.watchPosition(
@@ -90,15 +89,10 @@ export default function RacePage({ params }: { params: Promise<{ id: string }> }
         fetch('/api/race/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            challengeId: id,
-            lat: latitude,
-            lng: longitude,
-            accuracy,
-          }),
+          body: JSON.stringify({ challengeId: id, lat: latitude, lng: longitude, accuracy }),
         })
-          .then(r => r.json())
-          .then(d => {
+          .then((r) => r.json())
+          .then((d) => {
             if (d.distanceCm) setMyDistance(d.distanceCm)
           })
           .catch(() => {})
@@ -106,11 +100,7 @@ export default function RacePage({ params }: { params: Promise<{ id: string }> }
       (err) => {
         setGpsError(`GPS error: ${err.message}`)
       },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 10000,
-      }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     )
 
     return () => {
@@ -120,11 +110,10 @@ export default function RacePage({ params }: { params: Promise<{ id: string }> }
     }
   }, [raceStarted, finished, id])
 
-  // Check for finish
   useEffect(() => {
     if (!challenge || !raceStarted) return
     const goalCm = Number(challenge.distanceGoalCm)
-    const winner = participants.find(p => p.distanceCm >= goalCm)
+    const winner = participants.find((p) => p.distanceCm >= goalCm)
     if (winner) {
       setFinished(true)
       if (watchIdRef.current !== null) {
@@ -147,16 +136,18 @@ export default function RacePage({ params }: { params: Promise<{ id: string }> }
   if (isLoading) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <div className="animate-pulse text-zinc-500">Loading race...</div>
+        <div className="animate-pulse-soft text-t3">Loading race...</div>
       </div>
     )
   }
 
   if (!challenge || Number(challenge.challengeType) !== 4) {
     return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <h1 className="text-xl font-bold mb-2">Not a Live Race</h1>
-        <Link href={`/challenges/${id}`} className="text-indigo-400">Back to challenge</Link>
+      <div className="max-w-md mx-auto px-4 py-20 text-center animate-fade-up">
+        <h1 className="font-display text-xl font-bold text-t1 mb-2">Not a Live Race</h1>
+        <Link href={`/challenges/${id}`} className="text-coral-500 font-semibold">
+          Back to challenge
+        </Link>
       </div>
     )
   }
@@ -165,31 +156,36 @@ export default function RacePage({ params }: { params: Promise<{ id: string }> }
   const goalDisplay = formatDistance(goalCm)
 
   return (
-    <div className="max-w-md mx-auto px-4 py-8">
+    <div className="max-w-md mx-auto px-4 py-6 sm:py-8 animate-fade-up">
       {/* Race Header */}
       <div className="text-center mb-8">
-        <div className="text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-1">Live Race</div>
-        <h1 className="text-3xl font-bold mb-1">{goalDisplay} {unit}</h1>
-        <p className="text-zinc-500 text-sm">First to the distance wins</p>
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider mb-3">
+          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+          Live Race
+        </div>
+        <h1 className="font-display text-4xl font-bold text-t1 mb-1">
+          {goalDisplay} {unit}
+        </h1>
+        <p className="text-sm text-t3">First to the distance wins</p>
       </div>
 
-      {/* Countdown overlay */}
+      {/* Countdown */}
       {countdown !== null && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="text-8xl font-bold text-indigo-400 animate-pulse">
+        <div className="fixed inset-0 bg-page/90 flex items-center justify-center z-50" style={{ background: 'color-mix(in oklch, var(--page-bg) 90%, transparent)' }}>
+          <div className="font-display text-[120px] font-bold text-coral-500 animate-scale-in">
             {countdown === 0 ? 'GO!' : countdown}
           </div>
         </div>
       )}
 
-      {/* Finished overlay */}
+      {/* Finished */}
       {finished && (
-        <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-6 mb-6 text-center">
-          <div className="text-2xl font-bold text-green-400 mb-2">Race Complete!</div>
-          <p className="text-zinc-400 text-sm">Results are being settled on-chain.</p>
+        <div className="card p-6 mb-6 text-center bg-mint-50 dark:bg-mint-500/5 border-mint-200 dark:border-mint-500/20 animate-scale-in">
+          <p className="font-display text-2xl font-bold text-mint-500 mb-2">Race Complete!</p>
+          <p className="text-sm text-t2 mb-4">Results are being settled on-chain.</p>
           <Link
             href={`/challenges/${id}`}
-            className="inline-block mt-4 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg transition"
+            className="inline-block bg-coral-500 hover:bg-coral-600 text-white px-6 py-2.5 rounded-xl font-semibold transition-colors"
           >
             View Results
           </Link>
@@ -198,44 +194,57 @@ export default function RacePage({ params }: { params: Promise<{ id: string }> }
 
       {/* GPS Error */}
       {gpsError && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 text-center">
-          <span className="text-red-400 text-sm">{gpsError}</span>
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-3 mb-4 text-center">
+          <span className="text-red-600 dark:text-red-400 text-sm">{gpsError}</span>
         </div>
       )}
 
-      {/* Progress bars */}
+      {/* Progress Bars */}
       <div className="space-y-4 mb-8">
         {participants.map((p, i) => {
           const pct = goalCm > 0 ? Math.min(100, (p.distanceCm / goalCm) * 100) : 0
           const distDisplay = formatDistance(p.distanceCm)
           const isFinisher = p.distanceCm >= goalCm
+          const color = RUNNER_COLORS[i] || 'bg-coral-500'
+          const barColor = RUNNER_BAR_COLORS[i] || 'bg-coral-500'
 
           return (
-            <div key={p.userId} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <div key={p.userId} className="card p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className={`w-3 h-3 rounded-full ${i === 0 ? 'bg-indigo-500' : 'bg-orange-500'}`} />
-                  <span className="font-medium text-zinc-200">{p.name}</span>
-                  {isFinisher && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">Finished!</span>}
+                  <span className={`w-3 h-3 rounded-full ${color}`} />
+                  <span className="font-display font-semibold text-t1">{p.name}</span>
+                  {!raceStarted && p.isReady && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-mint-100 dark:bg-mint-500/10 text-mint-600 dark:text-mint-400 font-semibold">
+                      Ready
+                    </span>
+                  )}
+                  {isFinisher && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-mint-100 dark:bg-mint-500/10 text-mint-600 dark:text-mint-400 font-semibold">
+                      Finished!
+                    </span>
+                  )}
                 </div>
-                <span className="text-sm font-semibold text-zinc-300">{distDisplay} {unit}</span>
+                <span className="font-display text-sm font-bold text-t1">
+                  {distDisplay} {unit}
+                </span>
               </div>
-              <div className="w-full h-3 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="w-full h-3 bg-edge-subtle rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
-                    isFinisher ? 'bg-green-500' : i === 0 ? 'bg-indigo-500' : 'bg-orange-500'
+                    isFinisher ? 'bg-mint-500' : barColor
                   }`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <div className="text-xs text-zinc-500 mt-1">{pct.toFixed(0)}%</div>
+              <div className="text-xs text-t3 mt-1">{pct.toFixed(0)}%</div>
             </div>
           )
         })}
 
         {participants.length < 2 && (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
-            <p className="text-zinc-500 text-sm">Waiting for opponent to join...</p>
+          <div className="card p-6 text-center">
+            <p className="text-t3 text-sm animate-pulse-soft">Waiting for opponent to join...</p>
           </div>
         )}
       </div>
@@ -246,14 +255,14 @@ export default function RacePage({ params }: { params: Promise<{ id: string }> }
           {!isReady ? (
             <button
               onClick={handleReady}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl font-bold text-lg transition"
+              className="w-full bg-coral-500 hover:bg-coral-600 text-white py-4 rounded-xl font-bold font-display text-lg transition-colors shadow-lg shadow-coral-500/20"
             >
               Ready Up
             </button>
           ) : !allReady ? (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-              <div className="text-indigo-400 font-semibold mb-1">You're ready!</div>
-              <p className="text-zinc-500 text-sm animate-pulse">Waiting for opponent...</p>
+            <div className="card p-6 text-center">
+              <p className="font-display font-semibold text-coral-500 mb-1">You're ready!</p>
+              <p className="text-sm text-t3 animate-pulse-soft">Waiting for opponent...</p>
             </div>
           ) : null}
         </div>
@@ -262,9 +271,11 @@ export default function RacePage({ params }: { params: Promise<{ id: string }> }
       {/* Running indicator */}
       {raceStarted && !finished && (
         <div className="text-center">
-          <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            <span className="text-green-400 text-sm font-medium">GPS tracking active</span>
+          <div className="inline-flex items-center gap-2 bg-mint-50 dark:bg-mint-500/10 border border-mint-200 dark:border-mint-500/20 rounded-full px-4 py-2">
+            <span className="w-2 h-2 bg-mint-500 rounded-full animate-pulse" />
+            <span className="text-mint-600 dark:text-mint-400 text-sm font-semibold">
+              GPS tracking active
+            </span>
           </div>
         </div>
       )}

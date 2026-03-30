@@ -23,6 +23,14 @@ function formatDuration(value: string, unit: DurationUnit): string {
   return `${n} week${n !== 1 ? 's' : ''}`
 }
 
+const TYPES = [
+  { id: 0, name: 'Group Goal', desc: 'Everyone who hits the distance splits the pot', dot: 'bg-blue-500' },
+  { id: 1, name: 'Head-to-Head', desc: '1v1 — most distance by deadline wins', dot: 'bg-orange-500' },
+  { id: 2, name: 'Endurance', desc: '1v1 — first to the distance wins', dot: 'bg-purple-500' },
+  { id: 3, name: 'Best Effort', desc: '1v1 — fastest single run wins', dot: 'bg-emerald-500' },
+  { id: 4, name: 'Live Race', desc: '1v1 — real-time GPS race', dot: 'bg-red-500' },
+] as const
+
 export default function CreateChallenge() {
   const { authenticated, login } = useAuth()
   const { unit, parseToKm } = useUnits()
@@ -57,12 +65,12 @@ export default function CreateChallenge() {
 
   if (!authenticated) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-        <h1 className="text-2xl font-bold mb-4">Create a Challenge</h1>
-        <p className="text-zinc-400 mb-6">Sign in to create your first challenge</p>
+      <div className="max-w-lg mx-auto px-4 py-20 text-center animate-fade-up">
+        <h1 className="font-display text-2xl font-bold text-t1 mb-3">Create a Challenge</h1>
+        <p className="text-t2 mb-6">Sign in to create your first challenge</p>
         <button
           onClick={login}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg transition"
+          className="bg-coral-500 hover:bg-coral-600 text-white px-6 py-2.5 rounded-xl font-semibold transition-colors"
         >
           Sign In
         </button>
@@ -74,12 +82,14 @@ export default function CreateChallenge() {
   const insufficientBalance = balance !== null && stakeNum > balance
   const totalMinutes = durationToMinutes(parseInt(durationValue) || 0, durationUnit)
   const invalidDuration = totalMinutes < 1440 || totalMinutes > 525600
-  const startTimestamp = startOption === 'now'
-    ? Math.floor(Date.now() / 1000)
-    : startDate && startTimeField
-      ? Math.floor(new Date(`${startDate}T${startTimeField}`).getTime() / 1000)
-      : null
-  const invalidStartTime = startOption === 'scheduled' && (!startTimestamp || startTimestamp < Math.floor(Date.now() / 1000))
+  const startTimestamp =
+    startOption === 'now'
+      ? Math.floor(Date.now() / 1000)
+      : startDate && startTimeField
+        ? Math.floor(new Date(`${startDate}T${startTimeField}`).getTime() / 1000)
+        : null
+  const invalidStartTime =
+    startOption === 'scheduled' && (!startTimestamp || startTimestamp < Math.floor(Date.now() / 1000))
 
   const handleCreate = async () => {
     setIsSubmitting(true)
@@ -94,7 +104,7 @@ export default function CreateChallenge() {
           distanceKm: parseToKm(parseFloat(distanceInput)),
           durationMinutes: totalMinutes,
           stakeGbp: stakeNum,
-          maxParticipants: (challengeType >= 1) ? 2 : parseInt(maxParticipants),
+          maxParticipants: challengeType >= 1 ? 2 : parseInt(maxParticipants),
           isPrivate,
           inviteCode: isPrivate ? inviteCode : undefined,
           startTime: startTimestamp,
@@ -115,24 +125,28 @@ export default function CreateChallenge() {
 
   if (isSuccess) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-        <div className="text-4xl mb-4">🎉</div>
-        <h1 className="text-2xl font-bold mb-2">Challenge Created!</h1>
-        <p className="text-zinc-400 mb-6">Your challenge is live. Share the link to invite runners.</p>
+      <div className="max-w-lg mx-auto px-4 py-20 text-center animate-scale-in">
+        <div className="w-16 h-16 bg-mint-100 dark:bg-mint-500/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+          <svg className="w-8 h-8 text-mint-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h1 className="font-display text-2xl font-bold text-t1 mb-2">Challenge Created</h1>
+        <p className="text-t2 mb-6">Share the link to invite runners.</p>
         <div className="flex gap-3 justify-center">
           {newChallengeId && (
             <Link
               href={`/challenges/${newChallengeId}`}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg transition"
+              className="bg-coral-500 hover:bg-coral-600 text-white px-6 py-2.5 rounded-xl font-semibold transition-colors"
             >
               View Challenge
             </Link>
           )}
           <Link
             href="/challenges"
-            className="border border-zinc-700 text-zinc-400 hover:text-zinc-100 px-6 py-2 rounded-lg transition"
+            className="border border-edge text-t2 hover:text-t1 px-6 py-2.5 rounded-xl font-medium transition-colors"
           >
-            Browse Challenges
+            Browse
           </Link>
         </div>
       </div>
@@ -140,123 +154,81 @@ export default function CreateChallenge() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Create a Challenge</h1>
+    <div className="max-w-lg mx-auto px-4 py-6 sm:py-8 animate-fade-up">
+      <h1 className="font-display text-2xl font-bold text-t1 mb-6">Create a Challenge</h1>
 
+      {/* Balance */}
       {balance !== null && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6 flex items-center justify-between">
-          <span className="text-sm text-zinc-400">Your balance</span>
-          <span className="text-lg font-bold text-green-400">£{balance.toFixed(2)}</span>
+        <div className="card p-4 mb-6 flex items-center justify-between">
+          <span className="text-sm text-t2">Your balance</span>
+          <span className="font-display text-lg font-bold text-mint-500">£{balance.toFixed(2)}</span>
         </div>
       )}
 
-      <div className="mb-6">
-        <label className="block text-sm text-zinc-400 mb-2">Challenge Type</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            onClick={() => setChallengeType(0)}
-            className={`p-4 rounded-xl border text-left transition ${
-              challengeType === 0
-                ? 'border-indigo-500 bg-indigo-600/10'
-                : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
-            }`}
-          >
-            <div className="font-semibold mb-1">Group Goal</div>
-            <div className="text-sm text-zinc-400">
-              Set a distance. Everyone who hits it splits the pot.
-            </div>
-          </button>
-          <button
-            onClick={() => setChallengeType(1)}
-            className={`p-4 rounded-xl border text-left transition ${
-              challengeType === 1
-                ? 'border-indigo-500 bg-indigo-600/10'
-                : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
-            }`}
-          >
-            <div className="font-semibold mb-1">Head-to-Head</div>
-            <div className="text-sm text-zinc-400">
-              1v1. Whoever runs more by the deadline wins.
-            </div>
-          </button>
-          <button
-            onClick={() => setChallengeType(2)}
-            className={`p-4 rounded-xl border text-left transition ${
-              challengeType === 2
-                ? 'border-indigo-500 bg-indigo-600/10'
-                : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
-            }`}
-          >
-            <div className="font-semibold mb-1">Endurance Race</div>
-            <div className="text-sm text-zinc-400">
-              1v1. First to hit the distance wins. No waiting.
-            </div>
-          </button>
-          <button
-            onClick={() => setChallengeType(3)}
-            className={`p-4 rounded-xl border text-left transition ${
-              challengeType === 3
-                ? 'border-indigo-500 bg-indigo-600/10'
-                : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
-            }`}
-          >
-            <div className="font-semibold mb-1">Best Effort</div>
-            <div className="text-sm text-zinc-400">
-              1v1. Fastest single run over the distance wins.
-            </div>
-          </button>
-          <button
-            onClick={() => setChallengeType(4)}
-            className={`p-4 rounded-xl border text-left transition ${
-              challengeType === 4
-                ? 'border-indigo-500 bg-indigo-600/10'
-                : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
-            }`}
-          >
-            <div className="font-semibold mb-1">Live Race</div>
-            <div className="text-sm text-zinc-400">
-              1v1. Both run at the same time. Real-time GPS tracking.
-            </div>
-          </button>
+      {/* Challenge Type */}
+      <fieldset className="mb-6">
+        <legend className="text-sm font-semibold text-t2 mb-3">Challenge Type</legend>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {TYPES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setChallengeType(t.id as typeof challengeType)}
+              className={`card p-4 text-left transition-all ${
+                challengeType === t.id
+                  ? 'ring-2 ring-coral-500 border-coral-500/30'
+                  : 'hover:border-edge'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`w-2.5 h-2.5 rounded-full ${t.dot}`} />
+                <span className="font-display font-semibold text-sm text-t1">{t.name}</span>
+              </div>
+              <p className="text-xs text-t3 pl-[18px]">{t.desc}</p>
+            </button>
+          ))}
         </div>
-      </div>
+      </fieldset>
 
-      <div className="mb-4">
-        <label className="block text-sm text-zinc-400 mb-2">Challenge Name</label>
+      {/* Name */}
+      <div className="mb-5">
+        <label className="block text-sm font-semibold text-t2 mb-2">Challenge Name</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. New Year New Me"
-          className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 transition"
+          className="w-full bg-surface border border-edge rounded-xl px-4 py-3 text-t1 placeholder:text-t3 focus:outline-none focus:ring-2 focus:ring-coral-500/40 focus:border-coral-500/60 transition"
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      {/* Distance + Duration */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
         <div>
-          <label className="block text-sm text-zinc-400 mb-2">{(challengeType === 3 || challengeType === 4) ? 'Race Distance' : 'Distance Goal'} ({unit === 'mi' ? 'miles' : 'km'})</label>
+          <label className="block text-sm font-semibold text-t2 mb-2">
+            {challengeType === 3 || challengeType === 4 ? 'Race Distance' : 'Distance Goal'} ({unit === 'mi' ? 'miles' : 'km'})
+          </label>
           <input
             type="number"
             value={distanceInput}
             onChange={(e) => setDistanceInput(e.target.value)}
             min="1"
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
+            className="w-full bg-surface border border-edge rounded-xl px-4 py-3 text-t1 focus:outline-none focus:ring-2 focus:ring-coral-500/40 focus:border-coral-500/60 transition"
           />
         </div>
         <div>
-          <label className="block text-sm text-zinc-400 mb-2">Duration</label>
+          <label className="block text-sm font-semibold text-t2 mb-2">Duration</label>
           <div className="flex gap-2">
             <input
               type="number"
               value={durationValue}
               onChange={(e) => setDurationValue(e.target.value)}
               min="1"
-              className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
+              className="flex-1 bg-surface border border-edge rounded-xl px-4 py-3 text-t1 focus:outline-none focus:ring-2 focus:ring-coral-500/40 focus:border-coral-500/60 transition"
             />
             <select
               value={durationUnit}
               onChange={(e) => setDurationUnit(e.target.value as DurationUnit)}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
+              className="bg-surface border border-edge rounded-xl px-3 py-3 text-t1 focus:outline-none focus:ring-2 focus:ring-coral-500/40 transition"
             >
               <option value="hours">hrs</option>
               <option value="days">days</option>
@@ -264,30 +236,31 @@ export default function CreateChallenge() {
             </select>
           </div>
           {invalidDuration && (
-            <p className="text-red-400 text-xs mt-1">Duration must be 1 day to 365 days</p>
+            <p className="text-red-500 text-xs mt-1.5">Duration must be 1 day to 365 days</p>
           )}
         </div>
       </div>
 
-      <div className="mb-4">
-        <label className="block text-sm text-zinc-400 mb-2">Start Time</label>
-        <div className="grid grid-cols-2 gap-3 mb-3">
+      {/* Start Time */}
+      <div className="mb-5">
+        <label className="block text-sm font-semibold text-t2 mb-2">Start Time</label>
+        <div className="grid grid-cols-2 gap-2 mb-3">
           <button
             onClick={() => setStartOption('now')}
-            className={`p-3 rounded-xl border text-sm transition ${
+            className={`card p-3 text-sm font-medium text-center transition-all ${
               startOption === 'now'
-                ? 'border-indigo-500 bg-indigo-600/10 text-zinc-100'
-                : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700'
+                ? 'ring-2 ring-coral-500 border-coral-500/30 text-t1'
+                : 'text-t2'
             }`}
           >
             Start immediately
           </button>
           <button
             onClick={() => setStartOption('scheduled')}
-            className={`p-3 rounded-xl border text-sm transition ${
+            className={`card p-3 text-sm font-medium text-center transition-all ${
               startOption === 'scheduled'
-                ? 'border-indigo-500 bg-indigo-600/10 text-zinc-100'
-                : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700'
+                ? 'ring-2 ring-coral-500 border-coral-500/30 text-t1'
+                : 'text-t2'
             }`}
           >
             Schedule start
@@ -300,86 +273,92 @@ export default function CreateChallenge() {
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               min={new Date().toISOString().split('T')[0]}
-              className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
+              className="flex-1 bg-surface border border-edge rounded-xl px-4 py-3 text-t1 focus:outline-none focus:ring-2 focus:ring-coral-500/40 transition"
             />
             <input
               type="time"
               value={startTimeField}
               onChange={(e) => setStartTimeField(e.target.value)}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
+              className="bg-surface border border-edge rounded-xl px-4 py-3 text-t1 focus:outline-none focus:ring-2 focus:ring-coral-500/40 transition"
             />
           </div>
         )}
         {invalidStartTime && (
-          <p className="text-red-400 text-xs mt-1">Start time must be in the future</p>
+          <p className="text-red-500 text-xs mt-1.5">Start time must be in the future</p>
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      {/* Stake + Max Participants */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
         <div>
-          <label className="block text-sm text-zinc-400 mb-2">Stake (£)</label>
+          <label className="block text-sm font-semibold text-t2 mb-2">Stake (£)</label>
           <input
             type="number"
             value={stakeGbp}
             onChange={(e) => setStakeGbp(e.target.value)}
             min="1"
             step="1"
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
+            className="w-full bg-surface border border-edge rounded-xl px-4 py-3 text-t1 focus:outline-none focus:ring-2 focus:ring-coral-500/40 focus:border-coral-500/60 transition"
           />
         </div>
         {challengeType === 0 && (
           <div>
-            <label className="block text-sm text-zinc-400 mb-2">Max Participants</label>
+            <label className="block text-sm font-semibold text-t2 mb-2">Max Participants</label>
             <input
               type="number"
               value={maxParticipants}
               onChange={(e) => setMaxParticipants(e.target.value)}
               min="2"
               max="100"
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
+              className="w-full bg-surface border border-edge rounded-xl px-4 py-3 text-t1 focus:outline-none focus:ring-2 focus:ring-coral-500/40 focus:border-coral-500/60 transition"
             />
           </div>
         )}
       </div>
 
-      <div className="mb-4">
+      {/* Private Toggle */}
+      <div className="mb-5">
         <label className="flex items-center gap-3 cursor-pointer">
-          <div
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isPrivate}
             onClick={() => setIsPrivate(!isPrivate)}
-            className={`w-10 h-6 rounded-full transition ${
-              isPrivate ? 'bg-indigo-600' : 'bg-zinc-700'
-            } relative`}
+            className={`w-11 h-6 rounded-full transition-colors relative ${
+              isPrivate ? 'bg-coral-500' : 'bg-edge'
+            }`}
           >
-            <div
-              className={`w-4 h-4 bg-white rounded-full absolute top-1 transition ${
-                isPrivate ? 'left-5' : 'left-1'
+            <span
+              className={`block w-4 h-4 bg-white rounded-full absolute top-1 transition-transform shadow-sm ${
+                isPrivate ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
-          </div>
-          <span className="text-sm text-zinc-300">Private (invite only)</span>
+          </button>
+          <span className="text-sm font-medium text-t1">Private (invite only)</span>
         </label>
       </div>
 
       {isPrivate && (
-        <div className="mb-4">
-          <label className="block text-sm text-zinc-400 mb-2">Invite Code</label>
+        <div className="mb-5">
+          <label className="block text-sm font-semibold text-t2 mb-2">Invite Code</label>
           <input
             type="text"
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value)}
             placeholder="Enter a secret code for your friends"
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 transition"
+            className="w-full bg-surface border border-edge rounded-xl px-4 py-3 text-t1 placeholder:text-t3 focus:outline-none focus:ring-2 focus:ring-coral-500/40 transition"
           />
         </div>
       )}
 
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 mb-6">
-        <div className="text-sm text-zinc-400 mb-2">Challenge Preview</div>
-        <div className="text-zinc-100">
-          <span className="font-semibold">{name || 'Untitled Challenge'}</span>
+      {/* Preview */}
+      <div className="card p-4 mb-6 border-dashed">
+        <p className="text-xs font-semibold text-t3 uppercase tracking-wider mb-2">Preview</p>
+        <p className="text-sm text-t1">
+          <span className="font-display font-bold">{name || 'Untitled Challenge'}</span>
           {' — '}
           Run {distanceInput} {unit === 'mi' ? 'miles' : 'km'} in {formatDuration(durationValue, durationUnit)}.{' '}
-          <span className="text-amber-400">£{stakeGbp}</span> to join.
+          <span className="font-bold text-coral-500">£{stakeGbp}</span> to join.
           {challengeType === 0
             ? ` Up to ${maxParticipants} runners.`
             : challengeType === 2
@@ -391,32 +370,34 @@ export default function CreateChallenge() {
                   : ' 1v1 — whoever runs more wins.'}
           {isPrivate && ' Private.'}
           {startOption === 'scheduled' && startDate && ` Starts ${startDate}.`}
-        </div>
+        </p>
       </div>
 
+      {/* Errors */}
       {insufficientBalance && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 text-center">
-          <span className="text-red-400 text-sm">
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-3 mb-4 text-center">
+          <span className="text-red-600 dark:text-red-400 text-sm">
             Insufficient balance. You need £{stakeNum.toFixed(2)} but have £{(balance ?? 0).toFixed(2)}.{' '}
-            <Link href="/profile" className="underline">Top up</Link>
+            <Link href="/profile" className="underline font-semibold">
+              Top up
+            </Link>
           </span>
         </div>
       )}
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 text-center">
-          <span className="text-red-400 text-sm">{error}</span>
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-3 mb-4 text-center">
+          <span className="text-red-600 dark:text-red-400 text-sm">{error}</span>
         </div>
       )}
 
+      {/* Submit */}
       <button
         onClick={handleCreate}
         disabled={isSubmitting || !name || insufficientBalance || invalidDuration || invalidStartTime}
-        className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white py-3 rounded-xl font-semibold transition"
+        className="w-full bg-coral-500 hover:bg-coral-600 disabled:bg-edge disabled:text-t3 text-white py-3.5 rounded-xl font-bold font-display transition-colors shadow-lg shadow-coral-500/20 disabled:shadow-none"
       >
-        {isSubmitting
-          ? 'Creating challenge...'
-          : `Create Challenge — Stake £${stakeGbp}`}
+        {isSubmitting ? 'Creating...' : `Create Challenge — Stake £${stakeGbp}`}
       </button>
     </div>
   )
