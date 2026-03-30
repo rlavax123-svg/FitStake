@@ -23,6 +23,7 @@ export async function GET() {
     .select('id, type, amount, chain_challenge_id, tx_hash, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+    .limit(50)
 
   if (error) {
     return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 })
