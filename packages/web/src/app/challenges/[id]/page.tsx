@@ -15,20 +15,25 @@ import {
 } from '@/lib/hooks'
 import { useAuth } from '@/lib/use-auth'
 import { useReadContracts } from 'wagmi'
+import { useRouter } from 'next/navigation'
 import { FITSTAKE_ADDRESS, FITSTAKE_ABI, CHAIN } from '@/lib/contracts'
 
 export default function ChallengeDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = use(params)
   const id = parseInt(idStr)
+  const router = useRouter()
   const { data: challenge, isLoading } = useChallenge(id)
   const { data: ethPrice } = useEthPrice()
   const { data: onChainParticipants } = useParticipants(id)
   const { authenticated } = useAuth()
 
   const [isParticipant, setIsParticipant] = useState(false)
+  const [isCreator, setIsCreator] = useState(false)
   const [isJoining, setIsJoining] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const [joinSuccess, setJoinSuccess] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
+  const [cancelError, setCancelError] = useState<string | null>(null)
   const [challengeName, setChallengeName] = useState<string | null>(null)
   const [stakeGbp, setStakeGbp] = useState<number | null>(null)
   const [balance, setBalance] = useState<number | null>(null)
@@ -61,6 +66,7 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
       .then((r) => r.json())
       .then((d) => {
         setIsParticipant(d.isParticipant)
+        setIsCreator(d.isCreator ?? false)
         if (d.name) setChallengeName(d.name)
         if (d.stakeGbp) setStakeGbp(d.stakeGbp)
       })
@@ -117,6 +123,7 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
   const stateLabel = STATE_LABELS[challenge.state] || 'Unknown'
   const typeLabel = TYPE_LABELS[challenge.challengeType] || 'Unknown'
   const canJoin = challenge.state === 0 && !isParticipant && authenticated && !joinSuccess
+  const canCancel = challenge.state === 0 && isCreator && Number(challenge.participantCount) === 1 && authenticated
   const isSettled = challenge.state === 3
   const isActive = challenge.state === 1
 
@@ -138,6 +145,30 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
       setJoinError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setIsJoining(false)
+    }
+  }
+
+  const handleCancel = async () => {
+    if (!confirm('Are you sure you want to cancel this challenge? Your stake will be refunded.')) {
+      return
+    }
+    setIsCancelling(true)
+    setCancelError(null)
+    try {
+      const res = await fetch('/api/challenges/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challengeId: id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to cancel')
+      if (data.balance !== undefined) setBalance(data.balance)
+      window.dispatchEvent(new Event('balance-updated'))
+      router.push('/challenges')
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setIsCancelling(false)
     }
   }
 
@@ -249,6 +280,27 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
           <span className="text-green-400 text-sm font-medium">
             {joinSuccess ? 'Successfully joined!' : "You're in this challenge"}
           </span>
+        </div>
+      )}
+
+      {/* Cancel button */}
+      {canCancel && (
+        <div className="mb-6">
+          {cancelError && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-3 text-center">
+              <span className="text-red-400 text-sm">{cancelError}</span>
+            </div>
+          )}
+          <button
+            onClick={handleCancel}
+            disabled={isCancelling}
+            className="w-full bg-red-600 hover:bg-red-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white py-3 rounded-xl font-semibold transition"
+          >
+            {isCancelling ? 'Cancelling...' : 'Cancel Challenge'}
+          </button>
+          <p className="text-xs text-zinc-500 text-center mt-2">
+            Your stake of {stakeGbp ? `£${stakeGbp.toFixed(2)}` : ''} will be refunded
+          </p>
         </div>
       )}
 

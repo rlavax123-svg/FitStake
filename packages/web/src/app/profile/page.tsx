@@ -20,6 +20,16 @@ interface Stats {
   totalRuns: number
 }
 
+interface UserChallenge {
+  challengeId: number
+  name: string
+  stakeGbp: number
+  state: number
+  distanceGoalKm: number
+  won: boolean
+  payoutGbp: number
+}
+
 export default function Profile() {
   const { authenticated, login, user } = useAuth()
   const [runs, setRuns] = useState<Run[]>([])
@@ -28,6 +38,8 @@ export default function Profile() {
   const [error, setError] = useState('')
   const [balance, setBalance] = useState<number | null>(null)
   const [isTopping, setIsTopping] = useState(false)
+  const [myChallenges, setMyChallenges] = useState<UserChallenge[]>([])
+  const [challengesLoading, setChallengesLoading] = useState(false)
 
   // Fetch balance
   useEffect(() => {
@@ -53,6 +65,19 @@ export default function Profile() {
       setIsTopping(false)
     }
   }
+
+  // Fetch user's challenges
+  useEffect(() => {
+    if (!authenticated) return
+    setChallengesLoading(true)
+    fetch('/api/me/challenges')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.challenges) setMyChallenges(data.challenges)
+      })
+      .catch(() => {})
+      .finally(() => setChallengesLoading(false))
+  }, [authenticated])
 
   useEffect(() => {
     if (!authenticated) return
@@ -190,20 +215,77 @@ export default function Profile() {
       </div>
 
       {/* FitStake Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-green-400">0</div>
-          <div className="text-xs text-zinc-500">Wins</div>
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-red-400">0</div>
-          <div className="text-xs text-zinc-500">Losses</div>
-        </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-amber-400">£0</div>
-          <div className="text-xs text-zinc-500">Earned</div>
-        </div>
-      </div>
+      {(() => {
+        const settled = myChallenges.filter((c) => c.state === 3)
+        const wins = settled.filter((c) => c.won).length
+        const losses = settled.filter((c) => !c.won).length
+        const earned = settled.reduce((sum, c) => sum + c.payoutGbp, 0)
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-green-400">{wins}</div>
+              <div className="text-xs text-zinc-500">Wins</div>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-red-400">{losses}</div>
+              <div className="text-xs text-zinc-500">Losses</div>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-amber-400">
+                {earned > 0 ? `£${earned.toFixed(2)}` : '£0'}
+              </div>
+              <div className="text-xs text-zinc-500">Earned</div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Completed Challenges */}
+      {(() => {
+        const settled = myChallenges.filter((c) => c.state === 3)
+        if (challengesLoading) {
+          return (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-3">Completed Challenges</h2>
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
+                <p className="text-zinc-500 animate-pulse">Loading challenges...</p>
+              </div>
+            </div>
+          )
+        }
+        if (settled.length === 0) return null
+        return (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3">Completed Challenges</h2>
+            <div className="space-y-2">
+              {settled.map((c) => (
+                <a
+                  key={c.challengeId}
+                  href={`/challenges/${c.challengeId}`}
+                  className="block bg-zinc-900 border border-zinc-800 rounded-xl p-3 hover:border-zinc-700 transition"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-zinc-200">{c.name}</span>
+                      {c.won ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">Won</span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">Lost</span>
+                      )}
+                    </div>
+                    {c.won && c.payoutGbp > 0 && (
+                      <span className="text-sm font-bold text-green-400">+£{c.payoutGbp.toFixed(2)}</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-zinc-500">
+                    {c.distanceGoalKm.toFixed(1)} km goal · £{c.stakeGbp.toFixed(2)} stake
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Recent Runs */}
       <div>
