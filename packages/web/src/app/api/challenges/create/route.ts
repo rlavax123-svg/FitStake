@@ -159,9 +159,10 @@ export async function POST(request: Request) {
       amount: stakeGbp,
     })
 
-    console.error('Create challenge tx failed:', err)
+    const errMsg = err instanceof Error ? err.message : String(err)
+    console.error('Create challenge tx failed:', errMsg)
     return NextResponse.json(
-      { error: 'Transaction failed. Balance refunded.', balance: refundBalance },
+      { error: 'Transaction failed. Balance refunded.', detail: errMsg, balance: refundBalance },
       { status: 500 }
     )
   }
