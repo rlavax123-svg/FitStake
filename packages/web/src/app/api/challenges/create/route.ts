@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth-config'
 import { supabaseAdmin } from '@/lib/supabase'
-import { sendContractTx, gbpToWei, stravaIdToAddress } from '@/lib/server-wallet'
-import { keccak256, toBytes, decodeEventLog } from 'viem'
-import { FITSTAKE_ABI } from '@/lib/contracts'
+import { sendContractTxHash, gbpToWei, stravaIdToAddress, publicClient } from '@/lib/server-wallet'
+import { keccak256, toBytes } from 'viem'
+import { FITSTAKE_ABI, FITSTAKE_ADDRESS } from '@/lib/contracts'
 
 export async function POST(request: Request) {
   const session = await getSession()
@@ -64,6 +64,14 @@ export async function POST(request: Request) {
     // Convert £ to wei
     const valueWei = await gbpToWei(stakeGbp)
 
+    // Read the next challenge ID before sending (so we know what ID it'll get)
+    const nextId = await publicClient.readContract({
+      address: FITSTAKE_ADDRESS,
+      abi: FITSTAKE_ABI,
+      functionName: 'nextChallengeId',
+    }) as bigint
+    const challengeId = Number(nextId)
+
     // Prepare contract args
     const distanceCm = Math.round(distanceKm * 100_000)
     const startTime = Math.floor(Date.now() / 1000)
@@ -72,7 +80,8 @@ export async function POST(request: Request) {
       ? keccak256(toBytes(inviteCode))
       : ('0x' + '0'.repeat(64)) as `0x${string}`
 
-    const receipt = await sendContractTx(
+    // Send tx — don't wait for receipt (Vercel timeout)
+    const txHash = await sendContractTxHash(
       'createChallengeFor',
       [
         participantAddress,
@@ -87,62 +96,40 @@ export async function POST(request: Request) {
       valueWei
     )
 
-    // Parse ChallengeCreated event for challengeId
-    let challengeId: number | null = null
-    for (const log of receipt.logs) {
-      try {
-        const decoded = decodeEventLog({
-          abi: FITSTAKE_ABI,
-          data: log.data,
-          topics: log.topics,
-        })
-        if (decoded.eventName === 'ChallengeCreated') {
-          challengeId = Number((decoded.args as any).challengeId)
-          break
-        }
-      } catch {
-        // Not our event
-      }
-    }
-
     // Save metadata to Supabase
-    if (challengeId !== null) {
-      await supabaseAdmin.from('challenge_metadata').insert({
-        chain_challenge_id: challengeId,
-        name,
-        description: body.description || null,
-        invite_code: isPrivate ? inviteCode : null,
-        created_by: user.id,
-        stake_gbp: stakeGbp,
-      })
+    await supabaseAdmin.from('challenge_metadata').insert({
+      chain_challenge_id: challengeId,
+      name,
+      description: body.description || null,
+      invite_code: isPrivate ? inviteCode : null,
+      created_by: user.id,
+      stake_gbp: stakeGbp,
+    })
 
-      // Track creator as first participant
-      await supabaseAdmin.from('challenge_participants').insert({
-        chain_challenge_id: challengeId,
-        user_id: user.id,
-        strava_athlete_id: session.stravaId,
-      })
-    }
+    // Track creator as first participant
+    await supabaseAdmin.from('challenge_participants').insert({
+      chain_challenge_id: challengeId,
+      user_id: user.id,
+      strava_athlete_id: session.stravaId,
+    })
 
     // Update stake transaction with chain details
-    if (challengeId !== null) {
-      await supabaseAdmin
-        .from('transactions')
-        .update({
-          chain_challenge_id: challengeId,
-          tx_hash: receipt.transactionHash,
-        })
-        .eq('user_id', user.id)
-        .eq('type', 'stake')
-        .is('chain_challenge_id', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-    }
+    await supabaseAdmin
+      .from('transactions')
+      .update({
+        chain_challenge_id: challengeId,
+        tx_hash: txHash,
+      })
+      .eq('user_id', user.id)
+      .eq('type', 'stake')
+      .is('chain_challenge_id', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
 
     return NextResponse.json({
       success: true,
       challengeId,
-      txHash: receipt.transactionHash,
+      txHash,
       balance: newBalance,
     })
   } catch (err) {

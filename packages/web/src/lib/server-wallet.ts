@@ -87,15 +87,25 @@ export function stravaIdToAddress(stravaId: number): `0x${string}` {
   return `0x${hash.slice(26)}` as `0x${string}`
 }
 
-/** Send a transaction to the FitStake contract */
+/** Send a transaction to the FitStake contract and wait for receipt */
 export async function sendContractTx(
   functionName: string,
   args: unknown[],
   value?: bigint
 ): Promise<TransactionReceipt> {
+  const hash = await sendContractTxHash(functionName, args, value)
+  return publicClient.waitForTransactionReceipt({ hash })
+}
+
+/** Send a transaction and return just the hash (no receipt wait) */
+export async function sendContractTxHash(
+  functionName: string,
+  args: unknown[],
+  value?: bigint
+): Promise<`0x${string}`> {
   const wc = getWalletClient()
   const account = getAccount()
-  const hash = await wc.writeContract({
+  return wc.writeContract({
     address: FITSTAKE_ADDRESS,
     abi: FITSTAKE_ABI,
     functionName: functionName as any,
@@ -104,5 +114,4 @@ export async function sendContractTx(
     chain: sepolia,
     account,
   })
-  return publicClient.waitForTransactionReceipt({ hash })
 }
