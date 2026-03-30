@@ -1,3 +1,9 @@
 {
-  "installCommand": "npm install && npm install lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu"
+  "installCommand": "npm install && npm install lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu",
+  "crons": [
+    {
+      "path": "/api/cron/verify",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }
