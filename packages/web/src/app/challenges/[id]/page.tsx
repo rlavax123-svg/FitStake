@@ -300,6 +300,18 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
+      {/* Live Race button */}
+      {(isParticipant || joinSuccess) && Number(challenge.challengeType) === 4 && !isSettled && (
+        <div className="mb-6">
+          <Link
+            href={`/challenges/${id}/race`}
+            className="block w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-bold text-center text-lg transition"
+          >
+            Go to Race
+          </Link>
+        </div>
+      )}
+
       {/* Cancel button */}
       {canCancel && (
         <div className="mb-6">

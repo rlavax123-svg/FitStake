@@ -41,8 +41,8 @@ export async function settleChallenge(challengeId: number): Promise<SettleResult
     const challengeType = Number(challengeData.challengeType)
     const now = Math.floor(Date.now() / 1000)
 
-    // Endurance can settle early — contract handles the check
-    if (challengeType !== 2 && now < endTime) {
+    // Endurance + LiveRace can settle early — contract handles the check
+    if (challengeType !== 2 && challengeType !== 4 && now < endTime) {
       return { challengeId, status: 'skipped', reason: `not expired yet` }
     }
 
@@ -120,8 +120,8 @@ export async function settleChallenge(challengeId: number): Promise<SettleResult
             payoutGbp: payout,
           })
         }
-      } else if (challengeType === 2) {
-        // Endurance: first to goal wins. If both hit, higher distance wins. If neither, refund.
+      } else if (challengeType === 2 || challengeType === 4) {
+        // Endurance / LiveRace: first to goal wins. If both hit, higher distance wins. If neither, refund.
         if (distanceMap.length === 2) {
           const hitters = distanceMap.filter(d => d.distance >= distanceGoalCm)
           if (hitters.length === 0) {

@@ -28,7 +28,7 @@ export default function CreateChallenge() {
   const { unit, parseToKm } = useUnits()
   const router = useRouter()
 
-  const [challengeType, setChallengeType] = useState<0 | 1 | 2 | 3>(0)
+  const [challengeType, setChallengeType] = useState<0 | 1 | 2 | 3 | 4>(0)
   const [name, setName] = useState('')
   const [distanceInput, setDistanceInput] = useState('50')
   const [durationValue, setDurationValue] = useState('30')
@@ -205,6 +205,19 @@ export default function CreateChallenge() {
               1v1. Fastest single run over the distance wins.
             </div>
           </button>
+          <button
+            onClick={() => setChallengeType(4)}
+            className={`p-4 rounded-xl border text-left transition ${
+              challengeType === 4
+                ? 'border-indigo-500 bg-indigo-600/10'
+                : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
+            }`}
+          >
+            <div className="font-semibold mb-1">Live Race</div>
+            <div className="text-sm text-zinc-400">
+              1v1. Both run at the same time. Real-time GPS tracking.
+            </div>
+          </button>
         </div>
       </div>
 
@@ -221,7 +234,7 @@ export default function CreateChallenge() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
-          <label className="block text-sm text-zinc-400 mb-2">{challengeType === 3 ? 'Race Distance' : 'Distance Goal'} ({unit === 'mi' ? 'miles' : 'km'})</label>
+          <label className="block text-sm text-zinc-400 mb-2">{(challengeType === 3 || challengeType === 4) ? 'Race Distance' : 'Distance Goal'} ({unit === 'mi' ? 'miles' : 'km'})</label>
           <input
             type="number"
             value={distanceInput}
@@ -373,7 +386,9 @@ export default function CreateChallenge() {
               ? ' 1v1 — first to the distance wins!'
               : challengeType === 3
                 ? ' 1v1 — fastest single run wins.'
-                : ' 1v1 — whoever runs more wins.'}
+                : challengeType === 4
+                  ? ' 1v1 — live GPS race!'
+                  : ' 1v1 — whoever runs more wins.'}
           {isPrivate && ' Private.'}
           {startOption === 'scheduled' && startDate && ` Starts ${startDate}.`}
         </div>

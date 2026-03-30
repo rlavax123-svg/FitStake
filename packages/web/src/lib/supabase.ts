@@ -60,6 +60,18 @@ export interface DbTransaction {
   created_at: string
 }
 
+export interface DbRaceState {
+  id: string
+  chain_challenge_id: number
+  user_id: string
+  is_ready: boolean
+  cumulative_distance_cm: number
+  last_lat: number | null
+  last_lng: number | null
+  last_accuracy: number | null
+  updated_at: string
+}
+
 export interface DbChallengeParticipant {
   id: string
   chain_challenge_id: number
