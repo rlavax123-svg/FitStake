@@ -31,6 +31,16 @@ interface UserChallenge {
   payoutGbp: number
 }
 
+interface Transaction {
+  id: string
+  type: 'topup' | 'stake' | 'refund' | 'winnings'
+  amount: number
+  chain_challenge_id: number | null
+  challenge_name: string | null
+  tx_hash: string | null
+  created_at: string
+}
+
 export default function Profile() {
   const { authenticated, login, user } = useAuth()
   const { unit } = useUnits()
@@ -42,6 +52,8 @@ export default function Profile() {
   const [isTopping, setIsTopping] = useState(false)
   const [myChallenges, setMyChallenges] = useState<UserChallenge[]>([])
   const [challengesLoading, setChallengesLoading] = useState(false)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [txLoading, setTxLoading] = useState(false)
 
   // Fetch balance
   useEffect(() => {
@@ -83,6 +95,18 @@ export default function Profile() {
 
   useEffect(() => {
     if (!authenticated) return
+    setTxLoading(true)
+    fetch('/api/me/transactions')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.transactions) setTransactions(data.transactions)
+      })
+      .catch(() => {})
+      .finally(() => setTxLoading(false))
+  }, [authenticated])
+
+  useEffect(() => {
+    if (!authenticated) return
     setLoading(true)
     fetch('/api/me/activities')
       .then((res) => res.json())
@@ -116,6 +140,20 @@ export default function Profile() {
   const KM_PER_MILE = 1.60934
   const kmToDisplay = (km: number) => unit === 'mi' ? (km / KM_PER_MILE).toFixed(1) : km.toFixed(1)
   const unitLabel = unit === 'mi' ? 'miles' : 'km'
+
+  const formatTimeAgo = (dateStr: string) => {
+    const now = Date.now()
+    const then = new Date(dateStr).getTime()
+    const diffMs = now - then
+    const diffMin = Math.floor(diffMs / 60000)
+    if (diffMin < 1) return 'just now'
+    if (diffMin < 60) return `${diffMin}m ago`
+    const diffHr = Math.floor(diffMin / 60)
+    if (diffHr < 24) return `${diffHr}h ago`
+    const diffDays = Math.floor(diffHr / 24)
+    if (diffDays < 7) return `${diffDays}d ago`
+    return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  }
 
   const totalKm = parseFloat(stats?.totalDistanceKm || '0')
   // Suggest challenges based on their running volume
@@ -218,6 +256,76 @@ export default function Profile() {
             {isTopping ? 'Adding...' : 'Top Up £50'}
           </button>
         </div>
+      </div>
+
+      {/* Transaction History */}
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold mb-3">Transaction History</h2>
+        {txLoading ? (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl divide-y divide-zinc-800">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-3 flex items-center justify-between animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-5 bg-zinc-800 rounded-full" />
+                  <div>
+                    <div className="w-32 h-4 bg-zinc-800 rounded mb-1" />
+                    <div className="w-16 h-3 bg-zinc-800 rounded" />
+                  </div>
+                </div>
+                <div className="w-16 h-5 bg-zinc-800 rounded" />
+              </div>
+            ))}
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
+            <p className="text-zinc-500">No transactions yet.</p>
+            <a href="/challenges/create" className="text-indigo-400 hover:text-indigo-300 text-sm mt-1 inline-block">
+              Create a challenge to get started
+            </a>
+          </div>
+        ) : (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl divide-y divide-zinc-800">
+            {transactions.map((tx) => {
+              const badge = {
+                topup: { label: 'Top-up', cls: 'bg-blue-500/10 text-blue-400' },
+                stake: { label: 'Staked', cls: 'bg-orange-500/10 text-orange-400' },
+                winnings: { label: 'Won', cls: 'bg-green-500/10 text-green-400' },
+                refund: { label: 'Refund', cls: 'bg-zinc-500/10 text-zinc-400' },
+              }[tx.type]
+
+              const isPositive = tx.type !== 'stake'
+              const absAmount = Math.abs(tx.amount).toFixed(2)
+
+              return (
+                <div key={tx.id} className="p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                    <div>
+                      <div className="text-sm text-zinc-200">
+                        {tx.challenge_name ? (
+                          <a
+                            href={`/challenges/${tx.chain_challenge_id}`}
+                            className="hover:text-indigo-400 transition"
+                          >
+                            {tx.challenge_name}
+                          </a>
+                        ) : (
+                          'Balance top-up'
+                        )}
+                      </div>
+                      <div className="text-xs text-zinc-500">{formatTimeAgo(tx.created_at)}</div>
+                    </div>
+                  </div>
+                  <span className={`text-sm font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                    {isPositive ? '+' : '-'}£{absAmount}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* FitStake Stats */}
