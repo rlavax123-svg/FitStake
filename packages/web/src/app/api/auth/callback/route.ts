@@ -42,6 +42,7 @@ export async function GET(request: Request) {
           strava_access_token: data.access_token,
           strava_refresh_token: data.refresh_token,
           strava_token_expires_at: data.expires_at,
+          name: `${athlete.firstname} ${athlete.lastname}`.trim() || null,
         },
         { onConflict: 'strava_athlete_id' }
       )

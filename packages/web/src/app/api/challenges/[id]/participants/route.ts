@@ -31,13 +31,13 @@ export async function GET(
   if (stravaIds.length > 0) {
     const { data: users } = await supabaseAdmin
       .from('users')
-      .select('strava_athlete_id, email')
+      .select('strava_athlete_id, name, email')
       .in('strava_athlete_id', stravaIds)
 
     if (users) {
       for (const u of users) {
         if (u.strava_athlete_id) {
-          nameMap[u.strava_athlete_id] = u.email || `Athlete ${u.strava_athlete_id}`
+          nameMap[u.strava_athlete_id] = u.name || u.email || `Athlete ${u.strava_athlete_id}`
         }
       }
     }

@@ -52,7 +52,7 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
     const dist = distanceResults?.[i]?.status === 'success'
       ? Number(distanceResults[i].result as bigint)
       : 0
-    return { address: addr, distanceCm: dist }
+    return { address: addr, distanceCm: dist, originalIndex: i }
   })
 
   // Check participation and fetch metadata
@@ -264,7 +264,7 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
               const distanceKm = p.distanceCm / 100_000
               const pctOfGoal = goalCm > 0 ? Math.min(100, (p.distanceCm / goalCm) * 100) : 0
               const metGoal = p.distanceCm >= goalCm
-              const name = participantNames[i] || `Runner #${i + 1}`
+              const name = participantNames[p.originalIndex] || `Runner #${p.originalIndex + 1}`
 
               return (
                 <div

@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { sendContractTxHash, publicClient, stravaIdToAddress } from '@/lib/server-wallet'
 import { FITSTAKE_ABI, FITSTAKE_ADDRESS } from '@/lib/contracts'
 import { fetchStravaActivities, isValidRunActivity, refreshStravaToken } from '@/lib/strava'
+import { settleChallenge } from '@/lib/settle'
 
 const VERIFY_TOKEN = process.env.STRAVA_WEBHOOK_VERIFY_TOKEN || 'fitstake-webhook-verify'
 
@@ -93,6 +94,7 @@ export async function POST(request: Request) {
       if (Number(challenge.state) !== 1) continue // Skip non-active
 
       const startTime = Number(challenge.startTime)
+      const endTime = Number(challenge.endTime)
 
       // Fetch and validate activities since challenge start
       const activities = await fetchStravaActivities(accessToken, startTime)
@@ -104,6 +106,16 @@ export async function POST(request: Request) {
         'submitBatchVerification',
         [BigInt(challengeId), [participantAddress], [BigInt(totalDistanceCm)]]
       )
+
+      // Auto-settle if challenge has expired
+      const now = Math.floor(Date.now() / 1000)
+      if (now >= endTime) {
+        try {
+          await settleChallenge(challengeId)
+        } catch (err) {
+          console.error(`Auto-settle failed for challenge ${challengeId}:`, err)
+        }
+      }
     } catch (err) {
       console.error(`Webhook verify failed for challenge ${challengeId}:`, err)
     }

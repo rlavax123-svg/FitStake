@@ -51,6 +51,9 @@ CREATE INDEX IF NOT EXISTS idx_users_wallet ON users(wallet_address);
 -- Balance column on users
 ALTER TABLE users ADD COLUMN IF NOT EXISTS balance DECIMAL(12,2) DEFAULT 0;
 
+-- Name column on users (stores Strava firstname + lastname)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;
+
 -- Transaction audit trail
 CREATE TABLE IF NOT EXISTS transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

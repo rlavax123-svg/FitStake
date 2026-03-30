@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { sendContractTxHash, publicClient, stravaIdToAddress } from '@/lib/server-wallet'
 import { FITSTAKE_ABI, FITSTAKE_ADDRESS } from '@/lib/contracts'
 import { fetchStravaActivities, isValidRunActivity, refreshStravaToken } from '@/lib/strava'
+import { settleChallenge } from '@/lib/settle'
 
 export async function GET(request: Request) {
   // Verify this is from Vercel Cron (or admin)
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
     if (state !== 1) continue // Only verify Active challenges
 
     const startTime = Number(challenge.startTime)
+    const endTime = Number(challenge.endTime)
 
     // Get participants from Supabase
     const { data: participants } = await supabaseAdmin
@@ -103,6 +105,19 @@ export async function GET(request: Request) {
       }
     } else {
       results.push({ challengeId: i, status: 'no activities', participants: 0 })
+    }
+
+    // Auto-settle if challenge has expired
+    const nowSec = Math.floor(Date.now() / 1000)
+    if (nowSec >= endTime) {
+      try {
+        const settleResult = await settleChallenge(i)
+        if (settleResult.status === 'settled') {
+          results.push({ challengeId: i, status: 'auto-settled', participants: settleResult.results?.length })
+        }
+      } catch (err) {
+        results.push({ challengeId: i, status: `settle-error: ${err instanceof Error ? err.message : 'unknown'}` })
+      }
     }
   }
 
