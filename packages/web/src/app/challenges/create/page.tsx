@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/use-auth'
+import { useUnits } from '@/lib/use-units'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -24,11 +25,12 @@ function formatDuration(value: string, unit: DurationUnit): string {
 
 export default function CreateChallenge() {
   const { authenticated, login } = useAuth()
+  const { unit, parseToKm } = useUnits()
   const router = useRouter()
 
   const [challengeType, setChallengeType] = useState<0 | 1>(0)
   const [name, setName] = useState('')
-  const [distanceKm, setDistanceKm] = useState('50')
+  const [distanceInput, setDistanceInput] = useState('50')
   const [durationValue, setDurationValue] = useState('30')
   const [durationUnit, setDurationUnit] = useState<DurationUnit>('days')
   const [stakeGbp, setStakeGbp] = useState('10')
@@ -80,7 +82,7 @@ export default function CreateChallenge() {
         body: JSON.stringify({
           name,
           challengeType,
-          distanceKm: parseFloat(distanceKm),
+          distanceKm: parseToKm(parseFloat(distanceInput)),
           durationMinutes: totalMinutes,
           stakeGbp: stakeNum,
           maxParticipants: challengeType === 1 ? 2 : parseInt(maxParticipants),
@@ -183,11 +185,11 @@ export default function CreateChallenge() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
-          <label className="block text-sm text-zinc-400 mb-2">Distance Goal (km)</label>
+          <label className="block text-sm text-zinc-400 mb-2">Distance Goal ({unit === 'mi' ? 'miles' : 'km'})</label>
           <input
             type="number"
-            value={distanceKm}
-            onChange={(e) => setDistanceKm(e.target.value)}
+            value={distanceInput}
+            onChange={(e) => setDistanceInput(e.target.value)}
             min="1"
             className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
           />
@@ -281,7 +283,7 @@ export default function CreateChallenge() {
         <div className="text-zinc-100">
           <span className="font-semibold">{name || 'Untitled Challenge'}</span>
           {' — '}
-          Run {distanceKm}km in {formatDuration(durationValue, durationUnit)}.{' '}
+          Run {distanceInput} {unit === 'mi' ? 'miles' : 'km'} in {formatDuration(durationValue, durationUnit)}.{' '}
           <span className="text-amber-400">£{stakeGbp}</span> to join.
           {challengeType === 0
             ? ` Up to ${maxParticipants} runners.`

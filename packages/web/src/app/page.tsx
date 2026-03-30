@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/use-auth'
-import { useAllChallenges, useEthPrice, ethToFiat, cmToKm, timeRemaining, STATE_LABELS } from '@/lib/hooks'
+import { useAllChallenges, useEthPrice, ethToFiat, timeRemaining, STATE_LABELS } from '@/lib/hooks'
+import { useUnits } from '@/lib/use-units'
 import Link from 'next/link'
 
 export default function Home() {
@@ -90,6 +91,7 @@ function LandingPage({ onLogin }: { onLogin: () => void }) {
 function Dashboard() {
   const { data: challenges, isLoading } = useAllChallenges()
   const { data: ethPrice } = useEthPrice()
+  const { formatDistance, unit } = useUnits()
   const [balance, setBalance] = useState<number | null>(null)
 
   useEffect(() => {
@@ -166,7 +168,7 @@ function Dashboard() {
                       </span>
                     </div>
                     <p className="text-sm text-zinc-400">
-                      {cmToKm(c.distanceGoalCm)}km &middot; {timeRemaining(c.endTime)}
+                      {formatDistance(c.distanceGoalCm)} {unit} &middot; {timeRemaining(c.endTime)}
                     </p>
                   </div>
                   <div className="text-green-400 font-medium">{ethToFiat(c.totalStaked, ethPrice)}</div>

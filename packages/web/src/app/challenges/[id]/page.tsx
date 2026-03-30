@@ -8,12 +8,12 @@ import {
   useEthPrice,
   formatStake,
   ethToFiat,
-  cmToKm,
   timeRemaining,
   STATE_LABELS,
   TYPE_LABELS,
 } from '@/lib/hooks'
 import { useAuth } from '@/lib/use-auth'
+import { useUnits } from '@/lib/use-units'
 import { useReadContracts } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import { FITSTAKE_ADDRESS, FITSTAKE_ABI, CHAIN } from '@/lib/contracts'
@@ -26,6 +26,7 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
   const { data: ethPrice } = useEthPrice()
   const { data: onChainParticipants } = useParticipants(id)
   const { authenticated } = useAuth()
+  const { formatDistance, unit } = useUnits()
 
   const [isParticipant, setIsParticipant] = useState(false)
   const [isCreator, setIsCreator] = useState(false)
@@ -118,7 +119,7 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
     )
   }
 
-  const distKm = cmToKm(challenge.distanceGoalCm)
+  const distFormatted = formatDistance(challenge.distanceGoalCm)
   const remaining = timeRemaining(challenge.endTime)
   const stateLabel = STATE_LABELS[challenge.state] || 'Unknown'
   const typeLabel = TYPE_LABELS[challenge.challengeType] || 'Unknown'
@@ -228,14 +229,14 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
             {isActive || isSettled ? (
               <>
                 <div className="text-2xl font-bold text-indigo-400">
-                  {(maxDistanceCm / 100_000).toFixed(1)}
+                  {formatDistance(maxDistanceCm)}
                 </div>
-                <div className="text-xs text-zinc-400">/ {distKm} km</div>
+                <div className="text-xs text-zinc-400">/ {distFormatted} {unit}</div>
               </>
             ) : (
               <>
-                <div className="text-2xl font-bold text-indigo-400">{distKm}</div>
-                <div className="text-xs text-zinc-400">km goal</div>
+                <div className="text-2xl font-bold text-indigo-400">{distFormatted}</div>
+                <div className="text-xs text-zinc-400">{unit} goal</div>
               </>
             )}
           </div>
@@ -313,7 +314,7 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
           {participantDistances
             .sort((a, b) => b.distanceCm - a.distanceCm)
             .map((p, i) => {
-              const distanceKm = p.distanceCm / 100_000
+              const distDisplay = formatDistance(p.distanceCm)
               const pctOfGoal = goalCm > 0 ? Math.min(100, (p.distanceCm / goalCm) * 100) : 0
               const metGoal = p.distanceCm >= goalCm
               const name = participantNames[p.originalIndex] || `Runner #${p.originalIndex + 1}`
@@ -337,7 +338,7 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
                     </div>
                     {(isActive || isSettled) && (
                       <span className="text-sm font-medium text-zinc-200">
-                        {distanceKm.toFixed(1)} km
+                        {distDisplay} {unit}
                       </span>
                     )}
                   </div>
@@ -384,7 +385,7 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
           </div>
           <div>
             <div className="text-zinc-500">Goal</div>
-            <div>{distKm} km</div>
+            <div>{distFormatted} {unit}</div>
           </div>
           <div>
             <div className="text-zinc-500">Stake</div>

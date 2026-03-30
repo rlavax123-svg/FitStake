@@ -2,10 +2,12 @@
 
 import Link from 'next/link'
 import { useAuth } from '@/lib/use-auth'
+import { useUnits } from '@/lib/use-units'
 import { useState, useEffect } from 'react'
 
 export function Nav() {
   const { ready, authenticated, login, logout, user } = useAuth()
+  const { unit, toggleUnit } = useUnits()
   const [balance, setBalance] = useState<number | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -65,6 +67,13 @@ export function Nav() {
             <div className="h-8 w-20 bg-zinc-800 rounded animate-pulse" />
           ) : authenticated ? (
             <div className="flex items-center gap-3">
+              <button
+                onClick={toggleUnit}
+                className="flex items-center text-xs font-medium border border-zinc-700 rounded-full overflow-hidden"
+              >
+                <span className={`px-2 py-0.5 transition ${unit === 'km' ? 'bg-indigo-600 text-white' : 'text-zinc-400'}`}>km</span>
+                <span className={`px-2 py-0.5 transition ${unit === 'mi' ? 'bg-indigo-600 text-white' : 'text-zinc-400'}`}>mi</span>
+              </button>
               {balance !== null && (
                 <span className="text-sm font-medium text-green-400">
                   £{balance.toFixed(2)}

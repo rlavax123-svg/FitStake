@@ -7,11 +7,11 @@ import {
   useEthPrice,
   formatStake,
   ethToFiat,
-  cmToKm,
   timeRemaining,
   STATE_LABELS,
   TYPE_LABELS,
 } from '@/lib/hooks'
+import { useUnits } from '@/lib/use-units'
 
 type Filter = 'all' | 'group' | 'h2h'
 
@@ -19,6 +19,7 @@ export default function BrowseChallenges() {
   const [filter, setFilter] = useState<Filter>('all')
   const { data: challenges, isLoading } = useAllChallenges()
   const { data: ethPrice } = useEthPrice()
+  const { formatDistance, unit } = useUnits()
 
   const [metadata, setMetadata] = useState<Record<number, { name: string; stakeGbp: number | null }>>({})
 
@@ -84,7 +85,7 @@ export default function BrowseChallenges() {
         <div className="space-y-3">
           {filtered.map((c) => {
             const remaining = timeRemaining(c.endTime)
-            const distKm = cmToKm(c.distanceGoalCm)
+            const dist = formatDistance(c.distanceGoalCm)
             const stakeUsd = ethToFiat(c.stakeAmount, ethPrice)
             const potUsd = ethToFiat(c.totalStaked, ethPrice)
             const stateLabel = STATE_LABELS[c.state] || 'Unknown'
@@ -114,7 +115,7 @@ export default function BrowseChallenges() {
                       <span className="text-xs text-zinc-600">{typeLabel}</span>
                     </div>
                     <p className="text-sm text-zinc-400">
-                      Run {distKm}km &middot; {remaining}
+                      Run {dist} {unit} &middot; {remaining}
                     </p>
                   </div>
                   <div className="text-right">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/use-auth'
+import { useUnits } from '@/lib/use-units'
 import { useEffect, useState } from 'react'
 
 interface Run {
@@ -32,6 +33,7 @@ interface UserChallenge {
 
 export default function Profile() {
   const { authenticated, login, user } = useAuth()
+  const { unit } = useUnits()
   const [runs, setRuns] = useState<Run[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(false)
@@ -111,11 +113,15 @@ export default function Profile() {
     )
   }
 
+  const KM_PER_MILE = 1.60934
+  const kmToDisplay = (km: number) => unit === 'mi' ? (km / KM_PER_MILE).toFixed(1) : km.toFixed(1)
+  const unitLabel = unit === 'mi' ? 'miles' : 'km'
+
   const totalKm = parseFloat(stats?.totalDistanceKm || '0')
   // Suggest challenges based on their running volume
   const weeklyAvg = totalKm / 4 // 30 days ≈ 4 weeks
-  const suggestedGoal =
-    weeklyAvg > 30 ? '100km' : weeklyAvg > 15 ? '50km' : weeklyAvg > 5 ? '20km' : '10km'
+  const suggestedGoalKm = weeklyAvg > 30 ? 100 : weeklyAvg > 15 ? 50 : weeklyAvg > 5 ? 20 : 10
+  const suggestedGoal = `${kmToDisplay(suggestedGoalKm)} ${unitLabel}`
 
   // Count valid vs invalid runs for anti-cheat display
   const validRuns = runs.filter((r) => !r.manual && !r.flagged)
@@ -143,16 +149,16 @@ export default function Profile() {
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-indigo-400">{stats.totalDistanceKm}</div>
-            <div className="text-xs text-zinc-500">km this month</div>
+            <div className="text-2xl font-bold text-indigo-400">{kmToDisplay(totalKm)}</div>
+            <div className="text-xs text-zinc-500">{unitLabel} this month</div>
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
             <div className="text-2xl font-bold text-indigo-400">{stats.totalRuns}</div>
             <div className="text-xs text-zinc-500">runs</div>
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-indigo-400">{weeklyAvg.toFixed(0)}</div>
-            <div className="text-xs text-zinc-500">km/week avg</div>
+            <div className="text-2xl font-bold text-indigo-400">{unit === 'mi' ? (weeklyAvg / KM_PER_MILE).toFixed(0) : weeklyAvg.toFixed(0)}</div>
+            <div className="text-xs text-zinc-500">{unitLabel}/week avg</div>
           </div>
         </div>
       )}
@@ -278,7 +284,7 @@ export default function Profile() {
                     )}
                   </div>
                   <div className="text-xs text-zinc-500">
-                    {c.distanceGoalKm.toFixed(1)} km goal · £{c.stakeGbp.toFixed(2)} stake
+                    {kmToDisplay(c.distanceGoalKm)} {unitLabel} goal · £{c.stakeGbp.toFixed(2)} stake
                   </div>
                 </a>
               ))}
@@ -340,7 +346,7 @@ export default function Profile() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-bold text-indigo-400">{run.distanceKm}km</div>
+                    <div className="text-sm font-bold text-indigo-400">{kmToDisplay(parseFloat(run.distanceKm))} {unitLabel}</div>
                     {isValid && (
                       <div className="text-xs text-green-500">✓ verified</div>
                     )}
