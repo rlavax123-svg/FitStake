@@ -3,25 +3,37 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { sepolia } from 'viem/chains'
 import { FITSTAKE_ABI, FITSTAKE_ADDRESS } from './contracts'
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY as `0x${string}`
-if (!PRIVATE_KEY) throw new Error('PRIVATE_KEY env var required')
-
-const account = privateKeyToAccount(PRIVATE_KEY)
-
 const RPC_URL = process.env.SEPOLIA_RPC_URL || 'https://rpc.sepolia.org'
 
-export const walletClient = createWalletClient({
-  account,
-  chain: sepolia,
-  transport: http(RPC_URL),
-})
+// Lazy initialization — avoids build-time errors when env vars aren't available
+let _walletClient: ReturnType<typeof createWalletClient> | null = null
+let _publicClient: ReturnType<typeof createPublicClient> | null = null
+
+function getAccount() {
+  const pk = process.env.PRIVATE_KEY as `0x${string}`
+  if (!pk) throw new Error('PRIVATE_KEY env var required')
+  return privateKeyToAccount(pk)
+}
+
+export function getWalletClient() {
+  if (!_walletClient) {
+    _walletClient = createWalletClient({
+      account: getAccount(),
+      chain: sepolia,
+      transport: http(RPC_URL),
+    })
+  }
+  return _walletClient
+}
 
 export const publicClient = createPublicClient({
   chain: sepolia,
   transport: http(RPC_URL),
 })
 
-export const DEPLOYER_ADDRESS = account.address
+export function getDeployerAddress() {
+  return getAccount().address
+}
 
 // Chainlink ETH/USD Price Feed on Sepolia
 const ETH_USD_FEED = '0x694AA1769357215DE4FAC081bf1f309aDC325306' as const
@@ -81,6 +93,7 @@ export async function sendContractTx(
   args: unknown[],
   value?: bigint
 ): Promise<TransactionReceipt> {
+  const walletClient = getWalletClient()
   const hash = await walletClient.writeContract({
     address: FITSTAKE_ADDRESS,
     abi: FITSTAKE_ABI,
