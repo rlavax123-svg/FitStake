@@ -104,17 +104,33 @@ export async function POST(request: Request) {
       // Fetch and validate activities since challenge start
       const activities = await fetchStravaActivities(accessToken, startTime)
       const validRuns = activities.filter(isValidRunActivity)
-      const totalDistanceCm = validRuns.reduce((sum, a) => sum + Math.round(a.distance * 100), 0)
-
-      // Submit verification on-chain
-      await sendContractTxHash(
-        'submitBatchVerification',
-        [BigInt(challengeId), [participantAddress], [BigInt(totalDistanceCm)]]
-      )
-
-      // Auto-settle if challenge has expired OR endurance goal reached
       const challengeType = Number(challenge.challengeType)
       const distanceGoalCm = Number(challenge.distanceGoalCm)
+
+      if (challengeType === 3) {
+        // BestEffort: find fastest single qualifying run (distance >= goal)
+        const goalMeters = distanceGoalCm / 100
+        const qualifying = validRuns.filter(a => a.distance >= goalMeters)
+        if (qualifying.length > 0) {
+          const best = qualifying.reduce((fastest, a) =>
+            a.moving_time < fastest.moving_time ? a : fastest
+          )
+          await sendContractTxHash(
+            'submitBestTime',
+            [BigInt(challengeId), participantAddress, BigInt(Math.round(best.distance * 100)), BigInt(best.moving_time)]
+          )
+        }
+      } else {
+        // GroupGoal, HeadToHead, Endurance: cumulative distance
+        const totalDistanceCm = validRuns.reduce((sum, a) => sum + Math.round(a.distance * 100), 0)
+        await sendContractTxHash(
+          'submitBatchVerification',
+          [BigInt(challengeId), [participantAddress], [BigInt(totalDistanceCm)]]
+        )
+      }
+
+      // Auto-settle if expired, endurance goal reached, or best effort qualifying run submitted
+      const totalDistanceCm = validRuns.reduce((sum, a) => sum + Math.round(a.distance * 100), 0)
       const now = Math.floor(Date.now() / 1000)
       const shouldSettle = now >= endTime || (challengeType === 2 && totalDistanceCm >= distanceGoalCm)
       if (shouldSettle) {

@@ -163,6 +163,47 @@ export async function settleChallenge(challengeId: number): Promise<SettleResult
             }
           }
         }
+      } else if (challengeType === 3) {
+        // BestEffort: fastest time wins. No time = didn't qualify.
+        if (distanceMap.length === 2) {
+          // Read best times from chain
+          const time0 = Number(await publicClient.readContract({
+            address: FITSTAKE_ADDRESS, abi: FITSTAKE_ABI,
+            functionName: 'getParticipantBestTime',
+            args: [BigInt(challengeId), stravaIdToAddress(distanceMap[0].stravaId)],
+          }) as bigint)
+          const time1 = Number(await publicClient.readContract({
+            address: FITSTAKE_ADDRESS, abi: FITSTAKE_ABI,
+            functionName: 'getParticipantBestTime',
+            args: [BigInt(challengeId), stravaIdToAddress(distanceMap[1].stravaId)],
+          }) as bigint)
+
+          if (time0 === 0 && time1 === 0) {
+            // Neither qualified — refund
+            for (const d of distanceMap) {
+              results.push({ stravaId: d.stravaId, userId: d.userId, distanceCm: d.distance, isWinner: false, payoutGbp: stakeGbp })
+            }
+          } else if (time0 === time1) {
+            // Tie — refund
+            for (const d of distanceMap) {
+              results.push({ stravaId: d.stravaId, userId: d.userId, distanceCm: d.distance, isWinner: false, payoutGbp: stakeGbp })
+            }
+          } else {
+            // One or both qualified — fastest wins (lower time = faster, 0 = didn't qualify)
+            let winnerIdx: number
+            if (time0 === 0) winnerIdx = 1
+            else if (time1 === 0) winnerIdx = 0
+            else winnerIdx = time0 < time1 ? 0 : 1
+
+            for (let i = 0; i < 2; i++) {
+              results.push({
+                stravaId: distanceMap[i].stravaId, userId: distanceMap[i].userId,
+                distanceCm: distanceMap[i].distance,
+                isWinner: i === winnerIdx, payoutGbp: i === winnerIdx ? distributableGbp : 0,
+              })
+            }
+          }
+        }
       } else {
         // HeadToHead
         if (distanceMap.length === 2) {

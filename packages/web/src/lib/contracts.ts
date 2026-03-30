@@ -99,6 +99,18 @@ export const FITSTAKE_ABI = [
     outputs: [],
   },
   {
+    name: 'submitBestTime',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'challengeId', type: 'uint256' },
+      { name: 'participant', type: 'address' },
+      { name: 'distanceCm', type: 'uint256' },
+      { name: 'timeSec', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+  {
     name: 'settle',
     type: 'function',
     stateMutability: 'nonpayable',
@@ -155,6 +167,16 @@ export const FITSTAKE_ABI = [
     type: 'function',
     stateMutability: 'view',
     inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'getParticipantBestTime',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'challengeId', type: 'uint256' },
+      { name: 'participant', type: 'address' },
+    ],
     outputs: [{ name: '', type: 'uint256' }],
   },
   {

@@ -101,6 +101,9 @@ export async function GET(request: Request) {
 
     if (state !== 1) continue // Only verify Active challenges
 
+    const challengeType = Number(challenge.challengeType)
+    const distanceGoalCm = Number(challenge.distanceGoalCm)
+
     // Get participants from Supabase
     const { data: participants } = await supabaseAdmin
       .from('challenge_participants')
@@ -111,6 +114,7 @@ export async function GET(request: Request) {
 
     const addresses: `0x${string}`[] = []
     const distances: bigint[] = []
+    let verifiedCount = 0
 
     for (const p of participants) {
       if (!p.strava_athlete_id) continue
@@ -146,16 +150,35 @@ export async function GET(request: Request) {
       try {
         const activities = await fetchStravaActivities(accessToken, startTime)
         const validRuns = activities.filter(isValidRunActivity)
-        const totalDistanceCm = validRuns.reduce((sum, a) => sum + Math.round(a.distance * 100), 0)
 
-        addresses.push(stravaIdToAddress(p.strava_athlete_id))
-        distances.push(BigInt(totalDistanceCm))
+        if (challengeType === 3) {
+          // BestEffort: find fastest qualifying single run
+          const goalMeters = distanceGoalCm / 100
+          const qualifying = validRuns.filter((a: any) => a.distance >= goalMeters)
+          if (qualifying.length > 0) {
+            const best = qualifying.reduce((fastest: any, a: any) =>
+              a.moving_time < fastest.moving_time ? a : fastest
+            )
+            const addr = stravaIdToAddress(p.strava_athlete_id)
+            await sendContractTxHash(
+              'submitBestTime',
+              [BigInt(i), addr, BigInt(Math.round(best.distance * 100)), BigInt(best.moving_time)]
+            )
+            verifiedCount++
+          }
+        } else {
+          // Cumulative distance for GroupGoal, HeadToHead, Endurance
+          const totalDistanceCm = validRuns.reduce((sum: number, a: any) => sum + Math.round(a.distance * 100), 0)
+          addresses.push(stravaIdToAddress(p.strava_athlete_id))
+          distances.push(BigInt(totalDistanceCm))
+        }
       } catch {
         continue
       }
     }
 
-    if (addresses.length > 0) {
+    // Submit batch for non-BestEffort types
+    if (challengeType !== 3 && addresses.length > 0) {
       try {
         await sendContractTxHash(
           'submitBatchVerification',
@@ -165,6 +188,8 @@ export async function GET(request: Request) {
       } catch (err) {
         results.push({ challengeId: i, status: `error: ${err instanceof Error ? err.message : 'unknown'}` })
       }
+    } else if (challengeType === 3 && verifiedCount > 0) {
+      results.push({ challengeId: i, status: 'verified-best-times', participants: verifiedCount })
     } else {
       results.push({ challengeId: i, status: 'no activities', participants: 0 })
     }

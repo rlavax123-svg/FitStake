@@ -28,7 +28,7 @@ export default function CreateChallenge() {
   const { unit, parseToKm } = useUnits()
   const router = useRouter()
 
-  const [challengeType, setChallengeType] = useState<0 | 1 | 2>(0)
+  const [challengeType, setChallengeType] = useState<0 | 1 | 2 | 3>(0)
   const [name, setName] = useState('')
   const [distanceInput, setDistanceInput] = useState('50')
   const [durationValue, setDurationValue] = useState('30')
@@ -94,7 +94,7 @@ export default function CreateChallenge() {
           distanceKm: parseToKm(parseFloat(distanceInput)),
           durationMinutes: totalMinutes,
           stakeGbp: stakeNum,
-          maxParticipants: (challengeType === 1 || challengeType === 2) ? 2 : parseInt(maxParticipants),
+          maxParticipants: (challengeType >= 1) ? 2 : parseInt(maxParticipants),
           isPrivate,
           inviteCode: isPrivate ? inviteCode : undefined,
           startTime: startTimestamp,
@@ -152,7 +152,7 @@ export default function CreateChallenge() {
 
       <div className="mb-6">
         <label className="block text-sm text-zinc-400 mb-2">Challenge Type</label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             onClick={() => setChallengeType(0)}
             className={`p-4 rounded-xl border text-left transition ${
@@ -192,6 +192,19 @@ export default function CreateChallenge() {
               1v1. First to hit the distance wins. No waiting.
             </div>
           </button>
+          <button
+            onClick={() => setChallengeType(3)}
+            className={`p-4 rounded-xl border text-left transition ${
+              challengeType === 3
+                ? 'border-indigo-500 bg-indigo-600/10'
+                : 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
+            }`}
+          >
+            <div className="font-semibold mb-1">Best Effort</div>
+            <div className="text-sm text-zinc-400">
+              1v1. Fastest single run over the distance wins.
+            </div>
+          </button>
         </div>
       </div>
 
@@ -208,7 +221,7 @@ export default function CreateChallenge() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
-          <label className="block text-sm text-zinc-400 mb-2">Distance Goal ({unit === 'mi' ? 'miles' : 'km'})</label>
+          <label className="block text-sm text-zinc-400 mb-2">{challengeType === 3 ? 'Race Distance' : 'Distance Goal'} ({unit === 'mi' ? 'miles' : 'km'})</label>
           <input
             type="number"
             value={distanceInput}
@@ -358,7 +371,9 @@ export default function CreateChallenge() {
             ? ` Up to ${maxParticipants} runners.`
             : challengeType === 2
               ? ' 1v1 — first to the distance wins!'
-              : ' 1v1 — whoever runs more wins.'}
+              : challengeType === 3
+                ? ' 1v1 — fastest single run wins.'
+                : ' 1v1 — whoever runs more wins.'}
           {isPrivate && ' Private.'}
           {startOption === 'scheduled' && startDate && ` Starts ${startDate}.`}
         </div>
