@@ -41,9 +41,30 @@ export async function POST(request: Request) {
   const cd = challengeData as unknown as Record<string, unknown>
   const stakeWei = cd.stakeAmount as bigint
   const state = Number(cd.state ?? 0)
+  const startTime = Number(cd.startTime ?? 0)
+  const isPrivateChallenge = cd.isPrivate as boolean
+  const inviteCodeHash = cd.inviteCodeHash as `0x${string}`
 
   if (state !== 0) {
     return NextResponse.json({ error: 'Challenge is not open for joining' }, { status: 400 })
+  }
+
+  // Check join window hasn't closed
+  const nowSec = Math.floor(Date.now() / 1000)
+  if (nowSec >= startTime) {
+    return NextResponse.json({ error: 'Join window has closed — challenge has started' }, { status: 400 })
+  }
+
+  // Validate invite code BEFORE deducting balance
+  if (isPrivateChallenge) {
+    if (!inviteCode) {
+      return NextResponse.json({ error: 'Invite code required for private challenge' }, { status: 400 })
+    }
+    const { keccak256: k, toBytes: tb } = await import('viem')
+    const providedHash = k(tb(inviteCode))
+    if (providedHash !== inviteCodeHash) {
+      return NextResponse.json({ error: 'Invalid invite code' }, { status: 400 })
+    }
   }
 
   // Get the original £ stake from Supabase metadata (source of truth for £ amount)

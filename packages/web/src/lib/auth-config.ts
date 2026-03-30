@@ -3,8 +3,11 @@ import { cookies } from 'next/headers'
 
 const SESSION_COOKIE = 'fitstake_session'
 const SECRET = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'fitstake-dev-secret-change-in-production'
+  process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'fitstake-dev-secret')
 )
+if (!process.env.NEXTAUTH_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('NEXTAUTH_SECRET env var is required in production')
+}
 
 export interface SessionUser {
   stravaId: number

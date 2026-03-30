@@ -24,8 +24,14 @@ export async function GET(request: Request) {
   }) as bigint
 
   const results: { challengeId: number; status: string; participants?: number }[] = []
+  const startMs = Date.now()
+  const TIMEOUT_MS = 25_000 // Leave 5s buffer before Vercel's 30s limit
 
   for (let i = 1; i < Number(nextId); i++) {
+    if (Date.now() - startMs > TIMEOUT_MS) {
+      results.push({ challengeId: i, status: 'timeout-skipped' })
+      break
+    }
     const challenge = await publicClient.readContract({
       address: FITSTAKE_ADDRESS,
       abi: FITSTAKE_ABI,

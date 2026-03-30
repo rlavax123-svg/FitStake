@@ -25,6 +25,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const event = await request.json()
 
+  // Basic validation: Strava always sends these fields
+  if (!event.object_type || !event.object_id || !event.owner_id || !event.aspect_type) {
+    return NextResponse.json({ error: 'Invalid webhook payload' }, { status: 400 })
+  }
+
   // Only care about new/updated activities
   if (event.object_type !== 'activity') {
     return NextResponse.json({ ok: true })

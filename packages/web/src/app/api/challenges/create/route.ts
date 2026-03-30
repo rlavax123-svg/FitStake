@@ -74,9 +74,12 @@ export async function POST(request: Request) {
 
     // Prepare contract args
     const distanceCm = Math.round(distanceKm * 100_000)
-    const startTime = startTimeInput
-      ? Math.max(Math.floor(startTimeInput), Math.floor(Date.now() / 1000))
-      : Math.floor(Date.now() / 1000)
+    const nowSec = Math.floor(Date.now() / 1000)
+    const startTime = startTimeInput ? Math.floor(startTimeInput) : nowSec
+    if (startTime < nowSec - 60) {
+      // Allow 60s clock skew, but reject obviously past times
+      return NextResponse.json({ error: 'Start time cannot be in the past' }, { status: 400 })
+    }
     const participantAddress = stravaIdToAddress(session.stravaId)
     const inviteCodeHash = isPrivate && inviteCode
       ? keccak256(toBytes(inviteCode))

@@ -53,7 +53,26 @@ const PRICE_FEED_ABI = [
   },
 ] as const
 
-const USD_TO_GBP = 0.79
+let _cachedGbpUsdRate: { rate: number; fetchedAt: number } | null = null
+
+async function getUsdToGbpRate(): Promise<number> {
+  // Cache for 1 hour to avoid excessive API calls
+  if (_cachedGbpUsdRate && Date.now() - _cachedGbpUsdRate.fetchedAt < 3600_000) {
+    return _cachedGbpUsdRate.rate
+  }
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: AbortSignal.timeout(5000) })
+    if (res.ok) {
+      const data = await res.json()
+      const rate = data.rates?.GBP ?? 0.79
+      _cachedGbpUsdRate = { rate, fetchedAt: Date.now() }
+      return rate
+    }
+  } catch {
+    // Fall back to hardcoded if API is down
+  }
+  return 0.79
+}
 
 /** Get current ETH price in GBP */
 export async function getEthPriceGbp(): Promise<number> {
@@ -63,7 +82,8 @@ export async function getEthPriceGbp(): Promise<number> {
     functionName: 'latestRoundData',
   })
   const ethUsd = Number(data[1]) / 1e8
-  return ethUsd * USD_TO_GBP
+  const usdToGbp = await getUsdToGbpRate()
+  return ethUsd * usdToGbp
 }
 
 /** Convert GBP amount to wei */
