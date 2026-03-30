@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth-config'
 import { supabaseAdmin } from '@/lib/supabase'
-import { sendContractTx, weiToGbp, publicClient } from '@/lib/server-wallet'
+import { sendContractTx, weiToGbp, publicClient, stravaIdToAddress } from '@/lib/server-wallet'
 import { toHex, toBytes } from 'viem'
 import { FITSTAKE_ABI, FITSTAKE_ADDRESS } from '@/lib/contracts'
 
@@ -88,14 +88,14 @@ export async function POST(request: Request) {
   })
 
   try {
-    // Prepare invite code bytes
+    const participantAddress = stravaIdToAddress(session.stravaId)
     const inviteCodeBytes = inviteCode
       ? toHex(toBytes(inviteCode))
       : '0x' as `0x${string}`
 
     const receipt = await sendContractTx(
-      'joinChallenge',
-      [BigInt(challengeId), inviteCodeBytes],
+      'joinChallengeFor',
+      [BigInt(challengeId), participantAddress, inviteCodeBytes],
       stakeWei
     )
 

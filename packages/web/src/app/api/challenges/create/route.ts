@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth-config'
 import { supabaseAdmin } from '@/lib/supabase'
-import { sendContractTx, gbpToWei } from '@/lib/server-wallet'
+import { sendContractTx, gbpToWei, stravaIdToAddress } from '@/lib/server-wallet'
 import { keccak256, toBytes, decodeEventLog } from 'viem'
 import { FITSTAKE_ABI } from '@/lib/contracts'
 
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { name, challengeType, distanceKm, durationDays, stakeGbp, maxParticipants, isPrivate, inviteCode } = body
+  const { name, challengeType, distanceKm, durationMinutes, stakeGbp, maxParticipants, isPrivate, inviteCode } = body
 
   // Validate
   if (!name || typeof name !== 'string') {
@@ -24,8 +24,8 @@ export async function POST(request: Request) {
   if (!distanceKm || distanceKm <= 0) {
     return NextResponse.json({ error: 'Distance must be positive' }, { status: 400 })
   }
-  if (!durationDays || durationDays < 1 || durationDays > 365) {
-    return NextResponse.json({ error: 'Duration must be 1-365 days' }, { status: 400 })
+  if (!durationMinutes || durationMinutes < 10 || durationMinutes > 525600) {
+    return NextResponse.json({ error: 'Duration must be 10 minutes to 365 days' }, { status: 400 })
   }
   if (!stakeGbp || stakeGbp <= 0) {
     return NextResponse.json({ error: 'Stake must be positive' }, { status: 400 })
@@ -66,17 +66,19 @@ export async function POST(request: Request) {
 
     // Prepare contract args
     const distanceCm = Math.round(distanceKm * 100_000)
-    const startTime = Math.floor(Date.now() / 1000) + 3600
+    const startTime = Math.floor(Date.now() / 1000)
+    const participantAddress = stravaIdToAddress(session.stravaId)
     const inviteCodeHash = isPrivate && inviteCode
       ? keccak256(toBytes(inviteCode))
       : ('0x' + '0'.repeat(64)) as `0x${string}`
 
     const receipt = await sendContractTx(
-      'createChallenge',
+      'createChallengeFor',
       [
+        participantAddress,
         challengeType,
         BigInt(distanceCm),
-        BigInt(durationDays),
+        BigInt(durationMinutes),
         BigInt(startTime),
         BigInt(challengeType === 1 ? 2 : (maxParticipants || 10)),
         isPrivate ?? false,

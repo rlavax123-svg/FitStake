@@ -5,6 +5,23 @@ import { useAuth } from '@/lib/use-auth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+type DurationUnit = 'minutes' | 'hours' | 'days'
+
+function durationToMinutes(value: number, unit: DurationUnit): number {
+  switch (unit) {
+    case 'minutes': return value
+    case 'hours': return value * 60
+    case 'days': return value * 1440
+  }
+}
+
+function formatDuration(value: string, unit: DurationUnit): string {
+  const n = parseInt(value) || 0
+  if (unit === 'minutes') return `${n} minute${n !== 1 ? 's' : ''}`
+  if (unit === 'hours') return `${n} hour${n !== 1 ? 's' : ''}`
+  return `${n} day${n !== 1 ? 's' : ''}`
+}
+
 export default function CreateChallenge() {
   const { authenticated, login } = useAuth()
   const router = useRouter()
@@ -12,7 +29,8 @@ export default function CreateChallenge() {
   const [challengeType, setChallengeType] = useState<0 | 1>(0)
   const [name, setName] = useState('')
   const [distanceKm, setDistanceKm] = useState('50')
-  const [durationDays, setDurationDays] = useState('30')
+  const [durationValue, setDurationValue] = useState('30')
+  const [durationUnit, setDurationUnit] = useState<DurationUnit>('days')
   const [stakeGbp, setStakeGbp] = useState('10')
   const [maxParticipants, setMaxParticipants] = useState('10')
   const [isPrivate, setIsPrivate] = useState(false)
@@ -49,6 +67,8 @@ export default function CreateChallenge() {
 
   const stakeNum = parseFloat(stakeGbp) || 0
   const insufficientBalance = balance !== null && stakeNum > balance
+  const totalMinutes = durationToMinutes(parseInt(durationValue) || 0, durationUnit)
+  const invalidDuration = totalMinutes < 10 || totalMinutes > 525600
 
   const handleCreate = async () => {
     setIsSubmitting(true)
@@ -61,7 +81,7 @@ export default function CreateChallenge() {
           name,
           challengeType,
           distanceKm: parseFloat(distanceKm),
-          durationDays: parseInt(durationDays),
+          durationMinutes: totalMinutes,
           stakeGbp: stakeNum,
           maxParticipants: challengeType === 1 ? 2 : parseInt(maxParticipants),
           isPrivate,
@@ -173,15 +193,28 @@ export default function CreateChallenge() {
           />
         </div>
         <div>
-          <label className="block text-sm text-zinc-400 mb-2">Duration (days)</label>
-          <input
-            type="number"
-            value={durationDays}
-            onChange={(e) => setDurationDays(e.target.value)}
-            min="1"
-            max="365"
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
-          />
+          <label className="block text-sm text-zinc-400 mb-2">Duration</label>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              value={durationValue}
+              onChange={(e) => setDurationValue(e.target.value)}
+              min="1"
+              className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
+            />
+            <select
+              value={durationUnit}
+              onChange={(e) => setDurationUnit(e.target.value as DurationUnit)}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
+            >
+              <option value="minutes">min</option>
+              <option value="hours">hrs</option>
+              <option value="days">days</option>
+            </select>
+          </div>
+          {invalidDuration && (
+            <p className="text-red-400 text-xs mt-1">Duration must be 10 minutes to 365 days</p>
+          )}
         </div>
       </div>
 
@@ -248,7 +281,7 @@ export default function CreateChallenge() {
         <div className="text-zinc-100">
           <span className="font-semibold">{name || 'Untitled Challenge'}</span>
           {' — '}
-          Run {distanceKm}km in {durationDays} days.{' '}
+          Run {distanceKm}km in {formatDuration(durationValue, durationUnit)}.{' '}
           <span className="text-amber-400">£{stakeGbp}</span> to join.
           {challengeType === 0
             ? ` Up to ${maxParticipants} runners.`
@@ -274,7 +307,7 @@ export default function CreateChallenge() {
 
       <button
         onClick={handleCreate}
-        disabled={isSubmitting || !name || insufficientBalance}
+        disabled={isSubmitting || !name || insufficientBalance || invalidDuration}
         className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white py-3 rounded-xl font-semibold transition"
       >
         {isSubmitting

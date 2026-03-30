@@ -1,4 +1,4 @@
-import { createWalletClient, createPublicClient, http, type TransactionReceipt } from 'viem'
+import { createWalletClient, createPublicClient, http, keccak256, toBytes, type TransactionReceipt } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { sepolia } from 'viem/chains'
 import { FITSTAKE_ABI, FITSTAKE_ADDRESS } from './contracts'
@@ -66,6 +66,13 @@ export async function weiToGbp(wei: bigint): Promise<number> {
   const ethPriceGbp = await getEthPriceGbp()
   const eth = Number(wei) / 1e18
   return eth * ethPriceGbp
+}
+
+/** Derive a deterministic Ethereum address from a Strava athlete ID.
+ * Used as the on-chain identifier for server-side signing. */
+export function stravaIdToAddress(stravaId: number): `0x${string}` {
+  const hash = keccak256(toBytes(String(stravaId)))
+  return `0x${hash.slice(26)}` as `0x${string}`
 }
 
 /** Send a transaction to the FitStake contract */

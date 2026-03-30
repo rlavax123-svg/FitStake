@@ -220,6 +220,20 @@ export function daysRemaining(endTime: bigint | undefined | null): number {
   }
 }
 
+export function timeRemaining(endTime: bigint | undefined | null): string {
+  if (!endTime) return 'Unknown'
+  try {
+    const now = Math.floor(Date.now() / 1000)
+    const remaining = Number(endTime) - now
+    if (remaining <= 0) return 'Ended'
+    if (remaining < 3600) return `${Math.ceil(remaining / 60)}m left`
+    if (remaining < 86400) return `${Math.floor(remaining / 3600)}h ${Math.floor((remaining % 3600) / 60)}m left`
+    return `${Math.ceil(remaining / 86400)} days left`
+  } catch {
+    return 'Unknown'
+  }
+}
+
 export function shortenAddress(addr: string | undefined | null): string {
   if (!addr) return '???'
   try {

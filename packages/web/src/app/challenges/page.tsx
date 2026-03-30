@@ -8,7 +8,7 @@ import {
   formatStake,
   ethToFiat,
   cmToKm,
-  daysRemaining,
+  timeRemaining,
   STATE_LABELS,
   TYPE_LABELS,
 } from '@/lib/hooks'
@@ -75,7 +75,7 @@ export default function BrowseChallenges() {
       {/* Loading */}
       {isLoading && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
-          <p className="text-zinc-500 animate-pulse">Loading challenges from chain...</p>
+          <p className="text-zinc-500 animate-pulse">Loading challenges...</p>
         </div>
       )}
 
@@ -83,7 +83,7 @@ export default function BrowseChallenges() {
       {!isLoading && (
         <div className="space-y-3">
           {filtered.map((c) => {
-            const days = daysRemaining(c.endTime)
+            const remaining = timeRemaining(c.endTime)
             const distKm = cmToKm(c.distanceGoalCm)
             const stakeUsd = ethToFiat(c.stakeAmount, ethPrice)
             const potUsd = ethToFiat(c.totalStaked, ethPrice)
@@ -114,7 +114,7 @@ export default function BrowseChallenges() {
                       <span className="text-xs text-zinc-600">{typeLabel}</span>
                     </div>
                     <p className="text-sm text-zinc-400">
-                      Run {distKm}km &middot; {days} days remaining
+                      Run {distKm}km &middot; {remaining}
                     </p>
                   </div>
                   <div className="text-right">

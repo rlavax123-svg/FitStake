@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/use-auth'
-import { useAllChallenges, useEthPrice, ethToFiat, cmToKm, daysRemaining, STATE_LABELS } from '@/lib/hooks'
+import { useAllChallenges, useEthPrice, ethToFiat, cmToKm, timeRemaining, STATE_LABELS } from '@/lib/hooks'
 import Link from 'next/link'
 
 export default function Home() {
@@ -120,7 +120,7 @@ function Dashboard() {
         <p className="text-sm text-zinc-500 mt-1">
           {balance !== null && <span className="text-green-400 font-medium">£{balance.toFixed(2)}</span>}
           {balance !== null && ' · '}
-          {activeChallenges.length} active challenge{activeChallenges.length !== 1 ? 's' : ''} on Sepolia
+          {activeChallenges.length} active challenge{activeChallenges.length !== 1 ? 's' : ''}
         </p>
       </div>
 
@@ -145,7 +145,7 @@ function Dashboard() {
         <h2 className="text-lg font-semibold mb-3">Active Challenges</h2>
         {isLoading ? (
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
-            <p className="text-zinc-500 animate-pulse">Loading from chain...</p>
+            <p className="text-zinc-500 animate-pulse">Loading challenges...</p>
           </div>
         ) : activeChallenges.length > 0 ? (
           <div className="space-y-3">
@@ -166,7 +166,7 @@ function Dashboard() {
                       </span>
                     </div>
                     <p className="text-sm text-zinc-400">
-                      {cmToKm(c.distanceGoalCm)}km &middot; {daysRemaining(c.endTime)} days left
+                      {cmToKm(c.distanceGoalCm)}km &middot; {timeRemaining(c.endTime)}
                     </p>
                   </div>
                   <div className="text-green-400 font-medium">{ethToFiat(c.totalStaked, ethPrice)}</div>
