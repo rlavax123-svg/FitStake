@@ -41,6 +41,9 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
   const [stakeGbp, setStakeGbp] = useState<number | null>(null)
   const [balance, setBalance] = useState<number | null>(null)
   const [participantNames, setParticipantNames] = useState<Record<number, string>>({})
+  const [participantTeams, setParticipantTeams] = useState<Record<number, number>>({})
+  const [isTeamBattle, setIsTeamBattle] = useState(false)
+  const [teamSizeMeta, setTeamSizeMeta] = useState(3)
 
   const distanceContracts = (onChainParticipants || []).map((addr) => ({
     address: FITSTAKE_ADDRESS,
@@ -73,6 +76,17 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
         if (d.stakeGbp) setStakeGbp(d.stakeGbp)
       })
       .catch(() => {})
+    // Fetch team battle metadata
+    fetch(`/api/challenges/metadata?ids=${id}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const m = d.metadata?.[id]
+        if (m?.isTeamBattle) {
+          setIsTeamBattle(true)
+          setTeamSizeMeta(m.teamSize || 3)
+        }
+      })
+      .catch(() => {})
   }, [id, authenticated, joinSuccess])
 
   useEffect(() => {
@@ -81,10 +95,13 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
       .then((d) => {
         if (d.participants) {
           const names: Record<number, string> = {}
-          d.participants.forEach((p: { index: number; name: string }) => {
+          const teams: Record<number, number> = {}
+          d.participants.forEach((p: { index: number; name: string; team?: number }) => {
             names[p.index] = p.name
+            if (p.team) teams[p.index] = p.team
           })
           setParticipantNames(names)
+          setParticipantTeams(teams)
         }
       })
       .catch(() => {})
@@ -121,8 +138,12 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
   const distFormatted = formatDistance(challenge.distanceGoalCm)
   const remaining = timeRemaining(challenge.endTime)
   const stateLabel = STATE_LABELS[challenge.state] || 'Unknown'
-  const typeLabel = TYPE_LABELS[challenge.challengeType] || 'Unknown'
-  const dotClass = TYPE_DOTS[challenge.challengeType] || 'bg-blue-500'
+  const typeLabel = isTeamBattle
+    ? `Team Battle (${teamSizeMeta}v${teamSizeMeta})`
+    : challenge.challengeType === 2
+      ? 'Head-to-Head'
+      : (TYPE_LABELS[challenge.challengeType] || 'Unknown')
+  const dotClass = isTeamBattle ? 'bg-purple-500' : (TYPE_DOTS[challenge.challengeType] || 'bg-blue-500')
   const progressColor = PROGRESS_COLORS[challenge.challengeType] || 'bg-blue-500'
   const nowSec = BigInt(Math.floor(Date.now() / 1000))
   const joinWindowOpen = challenge.state === 0 && challenge.startTime > nowSec
@@ -373,79 +394,163 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      {/* Leaderboard */}
+      {/* Leaderboard / Team View */}
       <div className="mb-6">
-        <h2 className="font-display text-lg font-bold text-t1 mb-3">
-          {isActive || isSettled ? 'Leaderboard' : 'Participants'} ({Number(challenge.participantCount)})
-        </h2>
-        <div className="space-y-2 stagger">
-          {participantDistances
-            .sort((a, b) => b.distanceCm - a.distanceCm)
-            .map((p, i) => {
-              const distDisplay = formatDistance(p.distanceCm)
-              const pctOfGoal = goalCm > 0 ? Math.min(100, (p.distanceCm / goalCm) * 100) : 0
-              const metGoal = p.distanceCm >= goalCm
-              const name = participantNames[p.originalIndex] || `Runner #${p.originalIndex + 1}`
+        {isTeamBattle ? (
+          <>
+            <h2 className="font-display text-lg font-bold text-t1 mb-3">
+              Teams ({teamSizeMeta}v{teamSizeMeta})
+            </h2>
+            {(() => {
+              const team1 = participantDistances.filter(p => participantTeams[p.originalIndex] === 1)
+              const team2 = participantDistances.filter(p => participantTeams[p.originalIndex] === 2)
+              const team1Total = team1.reduce((s, p) => s + p.distanceCm, 0)
+              const team2Total = team2.reduce((s, p) => s + p.distanceCm, 0)
+              const winning = team1Total > team2Total ? 1 : team2Total > team1Total ? 2 : 0
 
               return (
-                <div
-                  key={p.address}
-                  className={`card p-3 ${
-                    isSettled && metGoal
-                      ? 'bg-mint-50 dark:bg-mint-500/5 border-mint-200 dark:border-mint-500/20'
-                      : ''
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
+                <div className="space-y-4 stagger">
+                  {[
+                    { num: 1, members: team1, total: team1Total, color: 'coral', bar: 'bg-coral-500' },
+                    { num: 2, members: team2, total: team2Total, color: 'blue', bar: 'bg-blue-500' },
+                  ].map((team) => (
+                    <div
+                      key={team.num}
+                      className={`card p-4 ${
+                        isSettled && winning === team.num
+                          ? 'bg-mint-50 dark:bg-mint-500/5 border-mint-200 dark:border-mint-500/20'
+                          : ''
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-3 h-3 rounded-full ${team.bar}`} />
+                          <span className="font-display font-bold text-t1">Team {team.num}</span>
+                          {isSettled && winning === team.num && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-mint-100 dark:bg-mint-500/10 text-mint-600 dark:text-mint-400 font-semibold">
+                              Winners
+                            </span>
+                          )}
+                        </div>
+                        {(isActive || isSettled) && (
+                          <span className="font-display font-bold text-t1">
+                            {formatDistance(team.total)} {unit}
+                          </span>
+                        )}
+                      </div>
+                      {(isActive || isSettled) && (
+                        <div className="mb-3">
+                          <div className="w-full h-2 bg-edge-subtle rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-700 ${team.bar}`}
+                              style={{
+                                width: `${Math.min(100, goalCm > 0 ? (team.total / goalCm) * 100 : 0)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      <div className="space-y-1.5">
+                        {team.members
+                          .sort((a, b) => b.distanceCm - a.distanceCm)
+                          .map((p) => {
+                            const name = participantNames[p.originalIndex] || `Runner #${p.originalIndex + 1}`
+                            return (
+                              <div key={p.address} className="flex items-center justify-between text-sm">
+                                <span className="text-t2">{name}</span>
+                                {(isActive || isSettled) && (
+                                  <span className="text-t3 font-medium">
+                                    {formatDistance(p.distanceCm)} {unit}
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        {team.members.length === 0 && (
+                          <p className="text-xs text-t3">Waiting for runners...</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+          </>
+        ) : (
+          <>
+            <h2 className="font-display text-lg font-bold text-t1 mb-3">
+              {isActive || isSettled ? 'Leaderboard' : 'Participants'} ({Number(challenge.participantCount)})
+            </h2>
+            <div className="space-y-2 stagger">
+              {participantDistances
+                .sort((a, b) => b.distanceCm - a.distanceCm)
+                .map((p, i) => {
+                  const distDisplay = formatDistance(p.distanceCm)
+                  const pctOfGoal = goalCm > 0 ? Math.min(100, (p.distanceCm / goalCm) * 100) : 0
+                  const metGoal = p.distanceCm >= goalCm
+                  const name = participantNames[p.originalIndex] || `Runner #${p.originalIndex + 1}`
+
+                  return (
+                    <div
+                      key={p.address}
+                      className={`card p-3 ${
+                        isSettled && metGoal
+                          ? 'bg-mint-50 dark:bg-mint-500/5 border-mint-200 dark:border-mint-500/20'
+                          : ''
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-edge-subtle flex items-center justify-center text-xs font-bold text-t2">
+                            {i + 1}
+                          </span>
+                          <span className="text-sm font-medium text-t1">{name}</span>
+                          {isSettled && metGoal && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-mint-100 dark:bg-mint-500/10 text-mint-600 dark:text-mint-400 font-semibold">
+                              Winner
+                            </span>
+                          )}
+                        </div>
+                        {(isActive || isSettled) && (
+                          <span className="text-sm font-bold font-display text-t1">
+                            {distDisplay} {unit}
+                          </span>
+                        )}
+                      </div>
+                      {(isActive || isSettled) && goalCm > 0 && (
+                        <div className="ml-9">
+                          <div className="w-full h-1.5 bg-edge-subtle rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-700 ${
+                                metGoal ? 'bg-mint-500' : progressColor
+                              }`}
+                              style={{ width: `${pctOfGoal}%` }}
+                            />
+                          </div>
+                          <div className="text-xs text-t3 mt-0.5">{pctOfGoal.toFixed(0)}% of goal</div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              {participantDistances.length === 0 &&
+                Array.from({ length: Number(challenge.participantCount) }, (_, i) => (
+                  <div
+                    key={i}
+                    className="card flex items-center justify-between p-3"
+                  >
                     <div className="flex items-center gap-3">
                       <span className="w-6 h-6 rounded-full bg-edge-subtle flex items-center justify-center text-xs font-bold text-t2">
                         {i + 1}
                       </span>
-                      <span className="text-sm font-medium text-t1">{name}</span>
-                      {isSettled && metGoal && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-mint-100 dark:bg-mint-500/10 text-mint-600 dark:text-mint-400 font-semibold">
-                          Winner
-                        </span>
-                      )}
+                      <span className="text-sm text-t2">Runner #{i + 1}</span>
                     </div>
-                    {(isActive || isSettled) && (
-                      <span className="text-sm font-bold font-display text-t1">
-                        {distDisplay} {unit}
-                      </span>
-                    )}
+                    {i === 0 && <span className="text-xs text-t3">Creator</span>}
                   </div>
-                  {(isActive || isSettled) && goalCm > 0 && (
-                    <div className="ml-9">
-                      <div className="w-full h-1.5 bg-edge-subtle rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-700 ${
-                            metGoal ? 'bg-mint-500' : progressColor
-                          }`}
-                          style={{ width: `${pctOfGoal}%` }}
-                        />
-                      </div>
-                      <div className="text-xs text-t3 mt-0.5">{pctOfGoal.toFixed(0)}% of goal</div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          {participantDistances.length === 0 &&
-            Array.from({ length: Number(challenge.participantCount) }, (_, i) => (
-              <div
-                key={i}
-                className="card flex items-center justify-between p-3"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-edge-subtle flex items-center justify-center text-xs font-bold text-t2">
-                    {i + 1}
-                  </span>
-                  <span className="text-sm text-t2">Runner #{i + 1}</span>
-                </div>
-                {i === 0 && <span className="text-xs text-t3">Creator</span>}
-              </div>
-            ))}
-        </div>
+                ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Details */}

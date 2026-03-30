@@ -120,11 +120,32 @@ export async function POST(request: Request) {
       stakeWei
     )
 
+    // Check if this is a team battle and assign team
+    const { data: teamMeta } = await supabaseAdmin
+      .from('challenge_metadata')
+      .select('is_team_battle, team_size')
+      .eq('chain_challenge_id', challengeId)
+      .maybeSingle()
+
+    let assignedTeam: number | undefined
+    if (teamMeta?.is_team_battle) {
+      // Count current team members and assign to the smaller team
+      const { data: existingParticipants } = await supabaseAdmin
+        .from('challenge_participants')
+        .select('team')
+        .eq('chain_challenge_id', challengeId)
+
+      const team1Count = (existingParticipants || []).filter(p => p.team === 1).length
+      const team2Count = (existingParticipants || []).filter(p => p.team === 2).length
+      assignedTeam = team1Count <= team2Count ? 1 : 2
+    }
+
     // Track participation
     await supabaseAdmin.from('challenge_participants').insert({
       chain_challenge_id: challengeId,
       user_id: user.id,
       strava_athlete_id: session.stravaId,
+      ...(assignedTeam ? { team: assignedTeam } : {}),
     })
 
     // Update tx with hash

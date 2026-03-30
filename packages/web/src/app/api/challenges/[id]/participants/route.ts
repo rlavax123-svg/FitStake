@@ -14,7 +14,7 @@ export async function GET(
 
   const { data: participants } = await supabaseAdmin
     .from('challenge_participants')
-    .select('strava_athlete_id, joined_at')
+    .select('strava_athlete_id, joined_at, team')
     .eq('chain_challenge_id', challengeId)
     .order('joined_at', { ascending: true })
 
@@ -49,6 +49,7 @@ export async function GET(
       ? nameMap[p.strava_athlete_id] || `Runner #${i + 1}`
       : 'Bot',
     isBot: !p.strava_athlete_id,
+    team: (p as any).team ?? null,
   }))
 
   return NextResponse.json({ participants: result })

@@ -12,7 +12,7 @@ import {
 } from '@/lib/hooks'
 import { useUnits } from '@/lib/use-units'
 
-type Filter = 'all' | 'group' | 'h2h' | 'endurance' | 'best' | 'live'
+type Filter = 'all' | 'group' | 'h2h' | 'team' | 'best' | 'live'
 
 const TYPE_CLASSES = ['type-group', 'type-h2h', 'type-endurance', 'type-best', 'type-live'] as const
 const TYPE_DOTS = ['bg-blue-500', 'bg-orange-500', 'bg-purple-500', 'bg-emerald-500', 'bg-red-500'] as const
@@ -22,7 +22,7 @@ export default function BrowseChallenges() {
   const { data: challenges, isLoading } = useAllChallenges()
   const { data: ethPrice } = useEthPrice()
   const { formatDistance, unit } = useUnits()
-  const [metadata, setMetadata] = useState<Record<number, { name: string; stakeGbp: number | null }>>({})
+  const [metadata, setMetadata] = useState<Record<number, { name: string; stakeGbp: number | null; isTeamBattle?: boolean; teamSize?: number }>>({})
 
   useEffect(() => {
     if (!challenges || challenges.length === 0) return
@@ -38,9 +38,9 @@ export default function BrowseChallenges() {
   const filtered = (challenges || []).filter((c) => {
     if (c.state >= 3) return false
     if (c.state <= 1 && Number(c.endTime) <= nowSec) return false
-    if (filter === 'group') return c.challengeType === 0
-    if (filter === 'h2h') return c.challengeType === 1
-    if (filter === 'endurance') return c.challengeType === 2
+    if (filter === 'group') return c.challengeType === 0 && !metadata[c.id]?.isTeamBattle
+    if (filter === 'h2h') return c.challengeType === 1 || c.challengeType === 2
+    if (filter === 'team') return metadata[c.id]?.isTeamBattle
     if (filter === 'best') return c.challengeType === 3
     if (filter === 'live') return c.challengeType === 4
     return true
@@ -50,7 +50,7 @@ export default function BrowseChallenges() {
     { key: 'all', label: 'All' },
     { key: 'group', label: 'Group' },
     { key: 'h2h', label: '1v1' },
-    { key: 'endurance', label: 'Endurance' },
+    { key: 'team', label: 'Teams' },
     { key: 'best', label: 'Best Effort' },
     { key: 'live', label: 'Live' },
   ]
@@ -103,9 +103,14 @@ export default function BrowseChallenges() {
           {filtered.map((c) => {
             const remaining = timeRemaining(c.endTime)
             const dist = formatDistance(c.distanceGoalCm)
-            const typeClass = TYPE_CLASSES[c.challengeType] || 'type-group'
-            const dotClass = TYPE_DOTS[c.challengeType] || 'bg-blue-500'
-            const typeLabel = TYPE_LABELS[c.challengeType] || 'Unknown'
+            const isTeam = metadata[c.id]?.isTeamBattle
+            const typeClass = isTeam ? 'type-endurance' : TYPE_CLASSES[c.challengeType] || 'type-group'
+            const dotClass = isTeam ? 'bg-purple-500' : TYPE_DOTS[c.challengeType] || 'bg-blue-500'
+            const typeLabel = isTeam
+              ? `Team Battle (${metadata[c.id]?.teamSize || 3}v${metadata[c.id]?.teamSize || 3})`
+              : c.challengeType === 2
+                ? 'Head-to-Head'
+                : (TYPE_LABELS[c.challengeType] || 'Unknown')
             const stateLabel = STATE_LABELS[c.state] || 'Unknown'
 
             return (

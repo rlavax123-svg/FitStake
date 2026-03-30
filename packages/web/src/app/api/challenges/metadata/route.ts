@@ -13,14 +13,15 @@ export async function GET(request: Request) {
 
   const { data } = await supabaseAdmin
     .from('challenge_metadata')
-    .select('chain_challenge_id, name, stake_gbp')
+    .select('chain_challenge_id, name, stake_gbp, is_team_battle, team_size')
     .in('chain_challenge_id', idList)
 
-  const metadata: Record<number, { name: string; stakeGbp: number | null }> = {}
+  const metadata: Record<number, { name: string; stakeGbp: number | null; isTeamBattle?: boolean; teamSize?: number }> = {}
   for (const row of data || []) {
     metadata[row.chain_challenge_id] = {
       name: row.name,
       stakeGbp: row.stake_gbp,
+      ...(row.is_team_battle ? { isTeamBattle: true, teamSize: row.team_size } : {}),
     }
   }
 

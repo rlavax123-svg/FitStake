@@ -23,20 +23,24 @@ function formatDuration(value: string, unit: DurationUnit): string {
   return `${n} week${n !== 1 ? 's' : ''}`
 }
 
-const TYPES = [
-  { id: 0, name: 'Group Goal', desc: 'Everyone who hits the distance splits the pot', dot: 'bg-blue-500' },
-  { id: 1, name: 'Head-to-Head', desc: '1v1 — most distance by deadline wins', dot: 'bg-orange-500' },
-  { id: 2, name: 'Endurance', desc: '1v1 — first to the distance wins', dot: 'bg-purple-500' },
-  { id: 3, name: 'Best Effort', desc: '1v1 — fastest single run wins', dot: 'bg-emerald-500' },
-  { id: 4, name: 'Live Race', desc: '1v1 — real-time GPS race', dot: 'bg-red-500' },
-] as const
+type UIMode = 'group' | 'h2h' | 'team' | 'best' | 'live'
+
+const UI_TYPES: { mode: UIMode; name: string; desc: string; dot: string }[] = [
+  { mode: 'group', name: 'Group Goal', desc: 'Hit the distance, split the pot', dot: 'bg-blue-500' },
+  { mode: 'h2h', name: 'Head-to-Head', desc: '1v1 — race or outlast your opponent', dot: 'bg-orange-500' },
+  { mode: 'team', name: 'Team Battle', desc: 'Team vs team — combined distance wins', dot: 'bg-purple-500' },
+  { mode: 'best', name: 'Best Effort', desc: '1v1 — fastest single run wins', dot: 'bg-emerald-500' },
+  { mode: 'live', name: 'Live Race', desc: '1v1 — real-time GPS race', dot: 'bg-red-500' },
+]
 
 export default function CreateChallenge() {
   const { authenticated, login } = useAuth()
   const { unit, parseToKm } = useUnits()
   const router = useRouter()
 
-  const [challengeType, setChallengeType] = useState<0 | 1 | 2 | 3 | 4>(0)
+  const [uiMode, setUiMode] = useState<UIMode>('group')
+  const [h2hVariant, setH2hVariant] = useState<'distance' | 'race'>('distance')
+  const [teamSize, setTeamSize] = useState(3)
   const [name, setName] = useState('')
   const [distanceInput, setDistanceInput] = useState('50')
   const [durationValue, setDurationValue] = useState('30')
@@ -78,6 +82,16 @@ export default function CreateChallenge() {
     )
   }
 
+  // Derive on-chain type from UI mode
+  const challengeType =
+    uiMode === 'group' ? 0
+    : uiMode === 'h2h' ? (h2hVariant === 'race' ? 2 : 1)
+    : uiMode === 'team' ? 0 // Team Battle uses GroupGoal on-chain
+    : uiMode === 'best' ? 3
+    : 4 // live
+  const isTeamBattle = uiMode === 'team'
+  const is1v1 = uiMode === 'h2h' || uiMode === 'best' || uiMode === 'live'
+
   const stakeNum = parseFloat(stakeGbp) || 0
   const insufficientBalance = balance !== null && stakeNum > balance
   const totalMinutes = durationToMinutes(parseInt(durationValue) || 0, durationUnit)
@@ -104,10 +118,11 @@ export default function CreateChallenge() {
           distanceKm: parseToKm(parseFloat(distanceInput)),
           durationMinutes: totalMinutes,
           stakeGbp: stakeNum,
-          maxParticipants: challengeType >= 1 ? 2 : parseInt(maxParticipants),
+          maxParticipants: is1v1 ? 2 : isTeamBattle ? teamSize * 2 : parseInt(maxParticipants),
           isPrivate,
           inviteCode: isPrivate ? inviteCode : undefined,
           startTime: startTimestamp,
+          ...(isTeamBattle ? { isTeamBattle: true, teamSize } : {}),
         }),
       })
       const data = await res.json()
@@ -169,15 +184,15 @@ export default function CreateChallenge() {
       <fieldset className="mb-6">
         <legend className="text-sm font-semibold text-t2 mb-3">Challenge Type</legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {TYPES.map((t) => {
-            const selected = challengeType === t.id
+          {UI_TYPES.map((t) => {
+            const selected = uiMode === t.mode
             return (
               <button
-                key={t.id}
-                onClick={() => setChallengeType(t.id as typeof challengeType)}
+                key={t.mode}
+                onClick={() => setUiMode(t.mode)}
                 className={`p-4 text-left rounded-2xl border transition-all ${
                   selected
-                    ? `bg-coral-500/10 border-coral-500 ring-2 ring-coral-500/30 shadow-md`
+                    ? 'bg-coral-500/10 border-coral-500 ring-2 ring-coral-500/30 shadow-md'
                     : 'bg-surface border-edge hover:border-t3'
                 }`}
                 style={{ boxShadow: selected ? 'var(--shadow-md)' : undefined }}
@@ -192,6 +207,57 @@ export default function CreateChallenge() {
           })}
         </div>
       </fieldset>
+
+      {/* H2H Sub-option */}
+      {uiMode === 'h2h' && (
+        <div className="mb-5">
+          <label className="block text-sm font-semibold text-t2 mb-2">Win Condition</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setH2hVariant('distance')}
+              className={`card p-3 text-sm font-medium text-center transition-all ${
+                h2hVariant === 'distance'
+                  ? 'ring-2 ring-coral-500 border-coral-500/30 text-t1'
+                  : 'text-t2'
+              }`}
+            >
+              Most distance by deadline
+            </button>
+            <button
+              onClick={() => setH2hVariant('race')}
+              className={`card p-3 text-sm font-medium text-center transition-all ${
+                h2hVariant === 'race'
+                  ? 'ring-2 ring-coral-500 border-coral-500/30 text-t1'
+                  : 'text-t2'
+              }`}
+            >
+              First to the distance
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Team Size */}
+      {isTeamBattle && (
+        <div className="mb-5">
+          <label className="block text-sm font-semibold text-t2 mb-2">Team Size</label>
+          <div className="flex gap-2">
+            {[2, 3, 4, 5].map((s) => (
+              <button
+                key={s}
+                onClick={() => setTeamSize(s)}
+                className={`flex-1 card p-3 text-center font-display font-bold transition-all ${
+                  teamSize === s
+                    ? 'ring-2 ring-coral-500 border-coral-500/30 text-coral-500'
+                    : 'text-t2'
+                }`}
+              >
+                {s}v{s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Name */}
       <div className="mb-5">
@@ -209,7 +275,7 @@ export default function CreateChallenge() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
         <div>
           <label className="block text-sm font-semibold text-t2 mb-2">
-            {challengeType === 3 || challengeType === 4 ? 'Race Distance' : 'Distance Goal'} ({unit === 'mi' ? 'miles' : 'km'})
+            {uiMode === 'best' || uiMode === 'live' ? 'Race Distance' : isTeamBattle ? 'Team Distance Goal' : 'Distance Goal'} ({unit === 'mi' ? 'miles' : 'km'})
           </label>
           <input
             type="number"
@@ -305,7 +371,7 @@ export default function CreateChallenge() {
             className="w-full bg-surface border border-edge rounded-xl px-4 py-3 text-t1 focus:outline-none focus:ring-2 focus:ring-coral-500/40 focus:border-coral-500/60 transition"
           />
         </div>
-        {challengeType === 0 && (
+        {uiMode === 'group' && (
           <div>
             <label className="block text-sm font-semibold text-t2 mb-2">Max Participants</label>
             <input
@@ -363,15 +429,17 @@ export default function CreateChallenge() {
           {' — '}
           Run {distanceInput} {unit === 'mi' ? 'miles' : 'km'} in {formatDuration(durationValue, durationUnit)}.{' '}
           <span className="font-bold text-coral-500">£{stakeGbp}</span> to join.
-          {challengeType === 0
+          {uiMode === 'group'
             ? ` Up to ${maxParticipants} runners.`
-            : challengeType === 2
-              ? ' 1v1 — first to the distance wins!'
-              : challengeType === 3
-                ? ' 1v1 — fastest single run wins.'
-                : challengeType === 4
-                  ? ' 1v1 — live GPS race!'
-                  : ' 1v1 — whoever runs more wins.'}
+            : isTeamBattle
+              ? ` ${teamSize}v${teamSize} — team with more distance wins!`
+              : uiMode === 'h2h' && h2hVariant === 'race'
+                ? ' 1v1 — first to the distance wins!'
+                : uiMode === 'best'
+                  ? ' 1v1 — fastest single run wins.'
+                  : uiMode === 'live'
+                    ? ' 1v1 — live GPS race!'
+                    : ' 1v1 — whoever runs more wins.'}
           {isPrivate && ' Private.'}
           {startOption === 'scheduled' && startDate && ` Starts ${startDate}.`}
         </p>

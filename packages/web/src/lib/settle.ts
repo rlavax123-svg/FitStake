@@ -102,7 +102,54 @@ export async function settleChallenge(challengeId: number): Promise<SettleResult
         distanceMap.push({ stravaId: p.strava_athlete_id, userId: p.user_id, distance: Number(dist) })
       }
 
-      if (challengeType === 0) {
+      // Check if team battle
+      const { data: teamMeta } = await supabaseAdmin
+        .from('challenge_metadata')
+        .select('is_team_battle')
+        .eq('chain_challenge_id', challengeId)
+        .maybeSingle()
+
+      if (teamMeta?.is_team_battle) {
+        // Team Battle: sum each team's total distance, winning team splits pot
+        const { data: teamParticipants } = await supabaseAdmin
+          .from('challenge_participants')
+          .select('user_id, strava_athlete_id, team')
+          .eq('chain_challenge_id', challengeId)
+
+        const teamDistances: Record<number, number> = { 1: 0, 2: 0 }
+        const participantTeams: Record<string, number> = {}
+
+        for (const tp of teamParticipants || []) {
+          const team = tp.team || 1
+          participantTeams[tp.user_id] = team
+          const d = distanceMap.find(dm => dm.userId === tp.user_id)
+          if (d) teamDistances[team] += d.distance
+        }
+
+        const isTie = teamDistances[1] === teamDistances[2]
+        const winningTeam = teamDistances[1] > teamDistances[2] ? 1 : 2
+
+        if (isTie) {
+          // Tie — refund everyone
+          for (const d of distanceMap) {
+            results.push({
+              stravaId: d.stravaId, userId: d.userId, distanceCm: d.distance,
+              isWinner: false, payoutGbp: stakeGbp,
+            })
+          }
+        } else {
+          const winners = distanceMap.filter(d => participantTeams[d.userId] === winningTeam)
+          const payoutPerWinner = winners.length > 0 ? distributableGbp / winners.length : 0
+
+          for (const d of distanceMap) {
+            const isWinner = participantTeams[d.userId] === winningTeam
+            results.push({
+              stravaId: d.stravaId, userId: d.userId, distanceCm: d.distance,
+              isWinner, payoutGbp: isWinner ? payoutPerWinner : 0,
+            })
+          }
+        }
+      } else if (challengeType === 0) {
         // GroupGoal: winners are those who met the distance goal
         const winners = distanceMap.filter(d => d.distance >= distanceGoalCm)
         const payoutPerWinner = winners.length > 0

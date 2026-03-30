@@ -12,13 +12,13 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { name, challengeType, distanceKm, durationMinutes, stakeGbp, maxParticipants, isPrivate, inviteCode, startTime: startTimeInput } = body
+  const { name, challengeType, distanceKm, durationMinutes, stakeGbp, maxParticipants, isPrivate, inviteCode, startTime: startTimeInput, isTeamBattle, teamSize } = body
 
   // Validate
   if (!name || typeof name !== 'string') {
     return NextResponse.json({ error: 'Name is required' }, { status: 400 })
   }
-  if (![0, 1].includes(challengeType)) {
+  if (![0, 1, 2, 3, 4].includes(challengeType)) {
     return NextResponse.json({ error: 'Invalid challenge type' }, { status: 400 })
   }
   if (!distanceKm || distanceKm <= 0) {
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
         BigInt(distanceCm),
         BigInt(durationMinutes),
         BigInt(startTime),
-        BigInt(challengeType === 1 ? 2 : (maxParticipants || 10)),
+        BigInt(challengeType >= 1 ? 2 : (isTeamBattle ? (teamSize || 3) * 2 : (maxParticipants || 10))),
         isPrivate ?? false,
         inviteCodeHash,
       ],
@@ -109,13 +109,15 @@ export async function POST(request: Request) {
       invite_code: isPrivate ? inviteCode : null,
       created_by: user.id,
       stake_gbp: stakeGbp,
+      ...(isTeamBattle ? { is_team_battle: true, team_size: teamSize || 3 } : {}),
     })
 
-    // Track creator as first participant
+    // Track creator as first participant (team 1 if team battle)
     await supabaseAdmin.from('challenge_participants').insert({
       chain_challenge_id: challengeId,
       user_id: user.id,
       strava_athlete_id: session.stravaId,
+      ...(isTeamBattle ? { team: 1 } : {}),
     })
 
     // Update stake transaction with chain details
