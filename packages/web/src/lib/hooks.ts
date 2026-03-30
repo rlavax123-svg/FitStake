@@ -4,8 +4,8 @@ import { useReadContract, useReadContracts } from 'wagmi'
 import { FITSTAKE_ADDRESS, FITSTAKE_ABI, CHAIN } from './contracts'
 import { formatEther } from 'viem'
 
-// Chainlink ETH/USD Price Feed on Sepolia
-const ETH_USD_FEED = '0x694AA1769357215DE4FAC081bf1f309aDC325306' as const
+// Chainlink ETH/USD Price Feed on Base Sepolia
+const ETH_USD_FEED = '0x4aDC67D8bb944e1c054a1a3CD69Cb6323B9FE48A' as const
 const PRICE_FEED_ABI = [
   {
     name: 'latestRoundData',

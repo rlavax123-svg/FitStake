@@ -1,8 +1,9 @@
-import { sepolia } from 'wagmi/chains'
+import { baseSepolia } from 'wagmi/chains'
 
 export const FITSTAKE_ADDRESS = process.env.NEXT_PUBLIC_FITSTAKE_ADDRESS as `0x${string}`
 export const FITSTAKE_VRF_ADDRESS = process.env.NEXT_PUBLIC_FITSTAKE_VRF_ADDRESS as `0x${string}`
-export const CHAIN = sepolia
+export const FITSTAKE_FUNCTIONS_ADDRESS = process.env.NEXT_PUBLIC_FITSTAKE_FUNCTIONS_ADDRESS as `0x${string}`
+export const CHAIN = baseSepolia
 
 export const FITSTAKE_ABI = [
   // Challenge Creation (direct wallet)

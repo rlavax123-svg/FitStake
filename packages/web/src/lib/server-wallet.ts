@@ -1,9 +1,9 @@
 import { createWalletClient, createPublicClient, http, keccak256, toBytes, type TransactionReceipt } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { sepolia } from 'viem/chains'
+import { baseSepolia } from 'viem/chains'
 import { FITSTAKE_ABI, FITSTAKE_ADDRESS } from './contracts'
 
-const RPC_URL = process.env.SEPOLIA_RPC_URL || 'https://rpc.sepolia.org'
+const RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || process.env.SEPOLIA_RPC_URL || 'https://sepolia.base.org'
 
 // Lazy initialization — avoids build-time errors when env vars aren't available
 let _walletClient: ReturnType<typeof createWalletClient> | null = null
@@ -19,7 +19,7 @@ export function getWalletClient() {
   if (!_walletClient) {
     _walletClient = createWalletClient({
       account: getAccount(),
-      chain: sepolia,
+      chain: baseSepolia,
       transport: http(RPC_URL),
     })
   }
@@ -27,7 +27,7 @@ export function getWalletClient() {
 }
 
 export const publicClient = createPublicClient({
-  chain: sepolia,
+  chain: baseSepolia,
   transport: http(RPC_URL),
 })
 
@@ -35,8 +35,8 @@ export function getDeployerAddress() {
   return getAccount().address
 }
 
-// Chainlink ETH/USD Price Feed on Sepolia
-const ETH_USD_FEED = '0x694AA1769357215DE4FAC081bf1f309aDC325306' as const
+// Chainlink ETH/USD Price Feed on Base Sepolia
+const ETH_USD_FEED = '0x4aDC67D8bb944e1c054a1a3CD69Cb6323B9FE48A' as const
 const PRICE_FEED_ABI = [
   {
     name: 'latestRoundData',
@@ -131,7 +131,7 @@ export async function sendContractTxHash(
     functionName: functionName as any,
     args: args as any,
     value,
-    chain: sepolia,
+    chain: baseSepolia,
     account,
   })
 }

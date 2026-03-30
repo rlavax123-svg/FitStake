@@ -2,16 +2,16 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider, createConfig, http } from 'wagmi'
-import { sepolia } from 'wagmi/chains'
+import { baseSepolia } from 'wagmi/chains'
 import { useState, type ReactNode } from 'react'
 import { AuthProvider } from './auth-provider'
 import { UnitsProvider } from '@/lib/use-units'
 import { ThemeProvider } from '@/lib/use-theme'
 
 const wagmiConfig = createConfig({
-  chains: [sepolia],
+  chains: [baseSepolia],
   transports: {
-    [sepolia.id]: http(),
+    [baseSepolia.id]: http(),
   },
 })
 
