@@ -123,7 +123,9 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
   const remaining = timeRemaining(challenge.endTime)
   const stateLabel = STATE_LABELS[challenge.state] || 'Unknown'
   const typeLabel = TYPE_LABELS[challenge.challengeType] || 'Unknown'
-  const canJoin = challenge.state === 0 && !isParticipant && authenticated && !joinSuccess
+  const nowSec = BigInt(Math.floor(Date.now() / 1000))
+  const joinWindowOpen = challenge.state === 0 && challenge.startTime > nowSec
+  const canJoin = joinWindowOpen && !isParticipant && authenticated && !joinSuccess
   const canCancel = challenge.state === 0 && isCreator && Number(challenge.participantCount) === 1 && authenticated
   const isSettled = challenge.state === 3
   const isActive = challenge.state === 1
@@ -250,6 +252,20 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
           <p className="text-sm text-zinc-400">
             Results are final. Winnings have been distributed.
           </p>
+        </div>
+      )}
+
+      {/* Join window status */}
+      {joinWindowOpen && (
+        <div className="bg-indigo-600/10 border border-indigo-600/30 rounded-xl p-3 mb-4 text-center">
+          <span className="text-sm text-indigo-400">
+            Joining open · Challenge starts {timeRemaining(challenge.startTime)}
+          </span>
+        </div>
+      )}
+      {challenge.state === 0 && !joinWindowOpen && (
+        <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-3 mb-4 text-center">
+          <p className="text-zinc-400 text-sm">Join window closed. Challenge starting soon.</p>
         </div>
       )}
 

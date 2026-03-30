@@ -6,21 +6,21 @@ import { useUnits } from '@/lib/use-units'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-type DurationUnit = 'minutes' | 'hours' | 'days'
+type DurationUnit = 'hours' | 'days' | 'weeks'
 
 function durationToMinutes(value: number, unit: DurationUnit): number {
   switch (unit) {
-    case 'minutes': return value
     case 'hours': return value * 60
     case 'days': return value * 1440
+    case 'weeks': return value * 10080
   }
 }
 
 function formatDuration(value: string, unit: DurationUnit): string {
   const n = parseInt(value) || 0
-  if (unit === 'minutes') return `${n} minute${n !== 1 ? 's' : ''}`
   if (unit === 'hours') return `${n} hour${n !== 1 ? 's' : ''}`
-  return `${n} day${n !== 1 ? 's' : ''}`
+  if (unit === 'days') return `${n} day${n !== 1 ? 's' : ''}`
+  return `${n} week${n !== 1 ? 's' : ''}`
 }
 
 export default function CreateChallenge() {
@@ -37,6 +37,9 @@ export default function CreateChallenge() {
   const [maxParticipants, setMaxParticipants] = useState('10')
   const [isPrivate, setIsPrivate] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
+  const [startOption, setStartOption] = useState<'now' | 'scheduled'>('now')
+  const [startDate, setStartDate] = useState('')
+  const [startTimeField, setStartTimeField] = useState('')
 
   const [balance, setBalance] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -70,7 +73,13 @@ export default function CreateChallenge() {
   const stakeNum = parseFloat(stakeGbp) || 0
   const insufficientBalance = balance !== null && stakeNum > balance
   const totalMinutes = durationToMinutes(parseInt(durationValue) || 0, durationUnit)
-  const invalidDuration = totalMinutes < 10 || totalMinutes > 525600
+  const invalidDuration = totalMinutes < 1440 || totalMinutes > 525600
+  const startTimestamp = startOption === 'now'
+    ? Math.floor(Date.now() / 1000)
+    : startDate && startTimeField
+      ? Math.floor(new Date(`${startDate}T${startTimeField}`).getTime() / 1000)
+      : null
+  const invalidStartTime = startOption === 'scheduled' && (!startTimestamp || startTimestamp < Math.floor(Date.now() / 1000))
 
   const handleCreate = async () => {
     setIsSubmitting(true)
@@ -88,6 +97,7 @@ export default function CreateChallenge() {
           maxParticipants: challengeType === 1 ? 2 : parseInt(maxParticipants),
           isPrivate,
           inviteCode: isPrivate ? inviteCode : undefined,
+          startTime: startTimestamp,
         }),
       })
       const data = await res.json()
@@ -209,15 +219,61 @@ export default function CreateChallenge() {
               onChange={(e) => setDurationUnit(e.target.value as DurationUnit)}
               className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
             >
-              <option value="minutes">min</option>
               <option value="hours">hrs</option>
               <option value="days">days</option>
+              <option value="weeks">wks</option>
             </select>
           </div>
           {invalidDuration && (
-            <p className="text-red-400 text-xs mt-1">Duration must be 10 minutes to 365 days</p>
+            <p className="text-red-400 text-xs mt-1">Duration must be 1 day to 365 days</p>
           )}
         </div>
+      </div>
+
+      <div className="mb-4">
+        <label className="block text-sm text-zinc-400 mb-2">Start Time</label>
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <button
+            onClick={() => setStartOption('now')}
+            className={`p-3 rounded-xl border text-sm transition ${
+              startOption === 'now'
+                ? 'border-indigo-500 bg-indigo-600/10 text-zinc-100'
+                : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700'
+            }`}
+          >
+            Start immediately
+          </button>
+          <button
+            onClick={() => setStartOption('scheduled')}
+            className={`p-3 rounded-xl border text-sm transition ${
+              startOption === 'scheduled'
+                ? 'border-indigo-500 bg-indigo-600/10 text-zinc-100'
+                : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700'
+            }`}
+          >
+            Schedule start
+          </button>
+        </div>
+        {startOption === 'scheduled' && (
+          <div className="flex gap-2">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
+            />
+            <input
+              type="time"
+              value={startTimeField}
+              onChange={(e) => setStartTimeField(e.target.value)}
+              className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-zinc-100 focus:outline-none focus:border-indigo-500 transition"
+            />
+          </div>
+        )}
+        {invalidStartTime && (
+          <p className="text-red-400 text-xs mt-1">Start time must be in the future</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -289,6 +345,7 @@ export default function CreateChallenge() {
             ? ` Up to ${maxParticipants} runners.`
             : ' 1v1 — winner takes all.'}
           {isPrivate && ' Private.'}
+          {startOption === 'scheduled' && startDate && ` Starts ${startDate}.`}
         </div>
       </div>
 
@@ -309,7 +366,7 @@ export default function CreateChallenge() {
 
       <button
         onClick={handleCreate}
-        disabled={isSubmitting || !name || insufficientBalance || invalidDuration}
+        disabled={isSubmitting || !name || insufficientBalance || invalidDuration || invalidStartTime}
         className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white py-3 rounded-xl font-semibold transition"
       >
         {isSubmitting

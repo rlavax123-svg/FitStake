@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { name, challengeType, distanceKm, durationMinutes, stakeGbp, maxParticipants, isPrivate, inviteCode } = body
+  const { name, challengeType, distanceKm, durationMinutes, stakeGbp, maxParticipants, isPrivate, inviteCode, startTime: startTimeInput } = body
 
   // Validate
   if (!name || typeof name !== 'string') {
@@ -24,8 +24,8 @@ export async function POST(request: Request) {
   if (!distanceKm || distanceKm <= 0) {
     return NextResponse.json({ error: 'Distance must be positive' }, { status: 400 })
   }
-  if (!durationMinutes || durationMinutes < 10 || durationMinutes > 525600) {
-    return NextResponse.json({ error: 'Duration must be 10 minutes to 365 days' }, { status: 400 })
+  if (!durationMinutes || durationMinutes < 1440 || durationMinutes > 525600) {
+    return NextResponse.json({ error: 'Duration must be at least 1 day (up to 365 days)' }, { status: 400 })
   }
   if (!stakeGbp || stakeGbp <= 0) {
     return NextResponse.json({ error: 'Stake must be positive' }, { status: 400 })
@@ -74,7 +74,9 @@ export async function POST(request: Request) {
 
     // Prepare contract args
     const distanceCm = Math.round(distanceKm * 100_000)
-    const startTime = Math.floor(Date.now() / 1000)
+    const startTime = startTimeInput
+      ? Math.max(Math.floor(startTimeInput), Math.floor(Date.now() / 1000))
+      : Math.floor(Date.now() / 1000)
     const participantAddress = stravaIdToAddress(session.stravaId)
     const inviteCodeHash = isPrivate && inviteCode
       ? keccak256(toBytes(inviteCode))

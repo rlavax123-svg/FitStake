@@ -171,7 +171,10 @@ function Dashboard() {
                       </span>
                     </div>
                     <p className="text-sm text-zinc-400">
-                      {formatDistance(c.distanceGoalCm)} {unit} &middot; {timeRemaining(c.endTime)}
+                      {formatDistance(c.distanceGoalCm)} {unit} &middot;{' '}
+                      {c.state === 0 && Number(c.startTime) > nowSec
+                        ? `Joining open · Starts ${timeRemaining(c.startTime)}`
+                        : timeRemaining(c.endTime)}
                     </p>
                   </div>
                   <div className="text-green-400 font-medium">{ethToFiat(c.totalStaked, ethPrice)}</div>

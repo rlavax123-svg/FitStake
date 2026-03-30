@@ -82,7 +82,7 @@ export async function GET(request: Request) {
         }
       }
       // Auto-activate Created challenges that have reached startTime with 2+ participants
-      else if (nowSec >= startTime && participantCount >= 2) {
+      else if (nowSec >= startTime && participantCount >= 1) {
         try {
           await sendContractTxHash('activateChallenge', [BigInt(i)])
           results.push({ challengeId: i, status: 'auto-activated', participants: participantCount })
