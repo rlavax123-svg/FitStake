@@ -93,13 +93,14 @@ export async function sendContractTx(
   args: unknown[],
   value?: bigint
 ): Promise<TransactionReceipt> {
-  const walletClient = getWalletClient()
-  const hash = await walletClient.writeContract({
+  const wc = getWalletClient()
+  const hash = await wc.writeContract({
     address: FITSTAKE_ADDRESS,
     abi: FITSTAKE_ABI,
     functionName: functionName as any,
     args: args as any,
     value,
+    chain: sepolia,
   })
   return publicClient.waitForTransactionReceipt({ hash })
 }
