@@ -25,7 +25,7 @@ export async function generateMetadata({
     }
   } catch {}
 
-  const ogUrl = `${process.env.NEXT_PUBLIC_URL || 'https://fitstake.app'}/api/og/challenge/${chainId}`
+  const ogUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://web-ashy-sigma.vercel.app'}/api/og/challenge/${chainId}`
 
   return {
     title,
