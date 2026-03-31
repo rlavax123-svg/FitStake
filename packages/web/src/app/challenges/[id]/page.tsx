@@ -405,45 +405,50 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
               </div>
             </div>
           )}
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                const url = isPrivateChallenge && creatorInviteCode
-                  ? `${window.location.origin}/challenges/${id}?code=${encodeURIComponent(creatorInviteCode)}`
-                  : `${window.location.origin}/challenges/${id}`
-                navigator.clipboard.writeText(url)
-                setCopied(true)
-                setTimeout(() => setCopied(false), 2000)
-              }}
-              className="flex-1 flex items-center justify-center gap-2 bg-edge-subtle hover:bg-edge rounded-xl py-2.5 text-sm font-medium text-t1 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
-                <path d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-              {copied ? 'Link Copied!' : 'Copy Link'}
-            </button>
-            <button
-              onClick={() => {
-                const url = isPrivateChallenge && creatorInviteCode
-                  ? `${window.location.origin}/challenges/${id}?code=${encodeURIComponent(creatorInviteCode)}`
-                  : `${window.location.origin}/challenges/${id}`
-                const text = `Join my FitStake challenge "${challengeName || `Challenge #${id}`}" — ${distFormatted} ${unit}, ${stakeGbp ? `£${stakeGbp.toFixed(2)}` : ''} stake!`
-                if (navigator.share) {
-                  navigator.share({ title: 'FitStake Challenge', text, url })
-                } else {
-                  const waUrl = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`
-                  window.open(waUrl, '_blank')
-                }
-              }}
-              className="flex-1 flex items-center justify-center gap-2 bg-mint-500 hover:bg-mint-600 rounded-xl py-2.5 text-sm font-bold text-white transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-              Share
-            </button>
-          </div>
+          {(() => {
+            const url = isPrivateChallenge && creatorInviteCode
+              ? `${window.location.origin}/challenges/${id}?code=${encodeURIComponent(creatorInviteCode)}`
+              : `${window.location.origin}/challenges/${id}`
+            const durationSec = Number(challenge.endTime) - Number(challenge.startTime)
+            const durationDays = Math.round(durationSec / 86400)
+            const durationStr = durationDays >= 7 && durationDays % 7 === 0
+              ? `${durationDays / 7} week${durationDays / 7 !== 1 ? 's' : ''}`
+              : `${durationDays} day${durationDays !== 1 ? 's' : ''}`
+            const shareText = `Join my FitStake challenge "${challengeName || `Challenge #${id}`}" — ${distFormatted} ${unit} in ${durationStr}, £${stakeGbp?.toFixed(2) ?? '?'} per runner`
+            return (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareText + '\n' + url)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 bg-edge-subtle hover:bg-edge rounded-xl py-2.5 text-sm font-medium text-t1 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+                    <path d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  {copied ? 'Copied!' : 'Copy Link'}
+                </button>
+                <button
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({ title: 'FitStake Challenge', text: shareText, url })
+                    } else {
+                      window.open(`https://wa.me/?text=${encodeURIComponent(shareText + '\n' + url)}`, '_blank')
+                    }
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 bg-mint-500 hover:bg-mint-600 rounded-xl py-2.5 text-sm font-bold text-white transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                  Share
+                </button>
+              </div>
+            )
+          })()}
         </div>
       )}
 

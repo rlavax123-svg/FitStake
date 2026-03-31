@@ -146,7 +146,8 @@ export default function CreateChallenge() {
         ? `${typeof window !== 'undefined' ? window.location.origin : ''}/challenges/${newChallengeId}?code=${encodeURIComponent(inviteCode)}`
         : `${typeof window !== 'undefined' ? window.location.origin : ''}/challenges/${newChallengeId}`
       : ''
-    const shareText = `Join my FitStake challenge "${name}" — ${distanceInput} ${unit === 'mi' ? 'miles' : 'km'}, £${stakeGbp} stake!`
+    const durationStr = formatDuration(durationValue, durationUnit)
+    const shareText = `Join my FitStake challenge "${name}" — ${distanceInput} ${unit === 'mi' ? 'miles' : 'km'} in ${durationStr}, £${stakeGbp} per runner`
 
     return (
       <div className="max-w-lg mx-auto px-4 py-20 text-center animate-scale-in">
@@ -163,7 +164,7 @@ export default function CreateChallenge() {
           <div className="mb-6 space-y-3">
             <button
               onClick={() => {
-                navigator.clipboard.writeText(challengeUrl)
+                navigator.clipboard.writeText(shareText + '\n' + challengeUrl)
                 setLinkCopied(true)
                 setTimeout(() => setLinkCopied(false), 2000)
               }}
