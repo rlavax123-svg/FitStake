@@ -5,7 +5,7 @@ import { FITSTAKE_ADDRESS, FITSTAKE_ABI, CHAIN } from './contracts'
 import { formatEther } from 'viem'
 
 // Chainlink ETH/USD Price Feed on Base Sepolia
-const ETH_USD_FEED = '0x4aDC67D8bb944e1c054a1a3CD69Cb6323B9FE48A' as const
+const ETH_USD_FEED = '0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1' as const
 const PRICE_FEED_ABI = [
   {
     name: 'latestRoundData',
