@@ -138,7 +138,16 @@ export default function CreateChallenge() {
     }
   }
 
+  const [linkCopied, setLinkCopied] = useState(false)
+
   if (isSuccess) {
+    const challengeUrl = newChallengeId
+      ? isPrivate && inviteCode
+        ? `${typeof window !== 'undefined' ? window.location.origin : ''}/challenges/${newChallengeId}?code=${encodeURIComponent(inviteCode)}`
+        : `${typeof window !== 'undefined' ? window.location.origin : ''}/challenges/${newChallengeId}`
+      : ''
+    const shareText = `Join my FitStake challenge "${name}" — ${distanceInput} ${unit === 'mi' ? 'miles' : 'km'}, £${stakeGbp} stake!`
+
     return (
       <div className="max-w-lg mx-auto px-4 py-20 text-center animate-scale-in">
         <div className="w-16 h-16 bg-mint-100 dark:bg-mint-500/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
@@ -147,7 +156,49 @@ export default function CreateChallenge() {
           </svg>
         </div>
         <h1 className="font-display text-2xl font-bold text-t1 mb-2">Challenge Created</h1>
-        <p className="text-t2 mb-6">Share the link to invite runners.</p>
+        <p className="text-t2 mb-6">Send the link to get people in.</p>
+
+        {/* Share Actions */}
+        {challengeUrl && (
+          <div className="mb-6 space-y-3">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(challengeUrl)
+                setLinkCopied(true)
+                setTimeout(() => setLinkCopied(false), 2000)
+              }}
+              className="w-full flex items-center justify-center gap-2 bg-edge-subtle hover:bg-edge rounded-xl py-3 text-sm font-medium text-t1 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+                <path d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              {linkCopied ? 'Link Copied!' : 'Copy Challenge Link'}
+            </button>
+            <button
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({ title: 'FitStake Challenge', text: shareText, url: challengeUrl })
+                } else {
+                  window.open(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + challengeUrl)}`, '_blank')
+                }
+              }}
+              className="w-full flex items-center justify-center gap-2 bg-mint-500 hover:bg-mint-600 rounded-xl py-3 text-sm font-bold text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              Share with Friends
+            </button>
+            {isPrivate && inviteCode && (
+              <div className="card p-3 text-left">
+                <p className="text-xs text-t3 mb-1">Invite code (included in link)</p>
+                <code className="text-sm font-mono text-t1">{inviteCode}</code>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex gap-3 justify-center">
           {newChallengeId && (
             <Link

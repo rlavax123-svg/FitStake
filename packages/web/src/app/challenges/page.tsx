@@ -11,6 +11,7 @@ import {
   TYPE_LABELS,
 } from '@/lib/hooks'
 import { useUnits } from '@/lib/use-units'
+import { useAuth } from '@/lib/use-auth'
 
 type Filter = 'all' | 'group' | 'h2h' | 'team' | 'best' | 'live'
 
@@ -22,7 +23,9 @@ export default function BrowseChallenges() {
   const { data: challenges, isLoading } = useAllChallenges()
   const { data: ethPrice } = useEthPrice()
   const { formatDistance, unit } = useUnits()
+  const { authenticated } = useAuth()
   const [metadata, setMetadata] = useState<Record<number, { name: string; stakeGbp: number | null; isTeamBattle?: boolean; teamSize?: number }>>({})
+  const [competitors, setCompetitors] = useState<{ name: string; challengeCount: number }[]>([])
 
   useEffect(() => {
     if (!challenges || challenges.length === 0) return
@@ -32,6 +35,14 @@ export default function BrowseChallenges() {
       .then((d) => setMetadata(d.metadata || {}))
       .catch(() => {})
   }, [challenges])
+
+  useEffect(() => {
+    if (!authenticated) return
+    fetch('/api/me/competitors')
+      .then((r) => r.json())
+      .then((d) => setCompetitors(d.competitors || []))
+      .catch(() => {})
+  }, [authenticated])
 
   const nowSec = Math.floor(Date.now() / 1000)
 
@@ -84,6 +95,33 @@ export default function BrowseChallenges() {
           </button>
         ))}
       </div>
+
+      {/* Past Competitors */}
+      {competitors.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-t3 uppercase tracking-wider mb-3">People you&apos;ve competed with</h2>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+            {competitors.map((c) => (
+              <div
+                key={c.name}
+                className="card flex-shrink-0 px-4 py-2.5 flex items-center gap-3"
+              >
+                <div className="w-8 h-8 rounded-full bg-coral-500/10 flex items-center justify-center">
+                  <span className="text-sm font-bold text-coral-500">
+                    {c.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-t1">{c.name}</p>
+                  <p className="text-xs text-t3">
+                    {c.challengeCount} challenge{c.challengeCount !== 1 ? 's' : ''} together
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Loading */}
       {isLoading && (

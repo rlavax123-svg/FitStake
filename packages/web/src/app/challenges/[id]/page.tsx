@@ -44,6 +44,17 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
   const [participantTeams, setParticipantTeams] = useState<Record<number, number>>({})
   const [isTeamBattle, setIsTeamBattle] = useState(false)
   const [teamSizeMeta, setTeamSizeMeta] = useState(3)
+  const [isPrivateChallenge, setIsPrivateChallenge] = useState(false)
+  const [inviteCodeInput, setInviteCodeInput] = useState('')
+  const [creatorInviteCode, setCreatorInviteCode] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  // Read invite code from URL params (for shared links)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('code')
+    if (code) setInviteCodeInput(code)
+  }, [])
 
   const distanceContracts = (onChainParticipants || []).map((addr) => ({
     address: FITSTAKE_ADDRESS,
@@ -76,7 +87,7 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
         if (d.stakeGbp) setStakeGbp(d.stakeGbp)
       })
       .catch(() => {})
-    // Fetch team battle metadata
+    // Fetch challenge metadata (team battle, private status, invite code)
     fetch(`/api/challenges/metadata?ids=${id}`)
       .then((r) => r.json())
       .then((d) => {
@@ -85,6 +96,8 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
           setIsTeamBattle(true)
           setTeamSizeMeta(m.teamSize || 3)
         }
+        if (m?.isPrivate) setIsPrivateChallenge(true)
+        if (m?.inviteCode) setCreatorInviteCode(m.inviteCode)
       })
       .catch(() => {})
   }, [id, authenticated, joinSuccess])
@@ -157,13 +170,20 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
   const isActive = challenge.state === 1
 
   const handleJoin = async () => {
+    if (isPrivateChallenge && !inviteCodeInput) {
+      setJoinError('Enter the invite code to join this private challenge')
+      return
+    }
     setIsJoining(true)
     setJoinError(null)
     try {
       const res = await fetch('/api/challenges/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ challengeId: id }),
+        body: JSON.stringify({
+          challengeId: id,
+          ...(isPrivateChallenge && inviteCodeInput ? { inviteCode: inviteCodeInput } : {}),
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to join')
@@ -303,13 +323,49 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      {/* Settled Banner */}
+      {/* Settled Banner + Share Card */}
       {isSettled && (
-        <div className="card p-4 mb-6 text-center border-purple-200 dark:border-purple-500/20 bg-purple-50 dark:bg-purple-500/5">
-          <p className="font-display font-bold text-purple-600 dark:text-purple-400 mb-1">
+        <div className="card p-4 mb-6 border-purple-200 dark:border-purple-500/20 bg-purple-50 dark:bg-purple-500/5">
+          <p className="font-display font-bold text-purple-600 dark:text-purple-400 mb-1 text-center">
             Challenge Complete
           </p>
-          <p className="text-sm text-t2">Results are final. Winnings distributed.</p>
+          <p className="text-sm text-t2 text-center mb-4">Results are final. Winnings distributed.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/challenges/${id}`
+                const myDist = participantDistances.find(
+                  (p) => isParticipant && p.distanceCm === maxDistanceCm
+                )
+                const text = myDist && myDist.distanceCm >= goalCm
+                  ? `I completed the "${challengeName || `Challenge #${id}`}" challenge on FitStake — ${formatDistance(myDist.distanceCm)} ${unit}!`
+                  : `Check out the results of "${challengeName || `Challenge #${id}`}" on FitStake!`
+                if (navigator.share) {
+                  navigator.share({ title: 'FitStake Results', text, url })
+                } else {
+                  navigator.clipboard.writeText(text + ' ' + url)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }
+              }}
+              className="flex-1 flex items-center justify-center gap-2 bg-purple-500 hover:bg-purple-600 rounded-xl py-2.5 text-sm font-bold text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              {copied ? 'Copied!' : 'Share Results'}
+            </button>
+            <a
+              href={`/api/og/challenge/${id}`}
+              download={`fitstake-${challengeName || id}.png`}
+              className="flex items-center justify-center gap-2 bg-edge-subtle hover:bg-edge rounded-xl px-4 py-2.5 text-sm font-medium text-t1 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Save Card
+            </a>
+          </div>
         </div>
       )}
 
@@ -324,6 +380,84 @@ export default function ChallengeDetail({ params }: { params: Promise<{ id: stri
       {challenge.state === 0 && !joinWindowOpen && (
         <div className="card p-3 mb-4 text-center">
           <p className="text-sm text-t3">Join window closed. Challenge starting soon.</p>
+        </div>
+      )}
+
+      {/* Share / Invite */}
+      {(isParticipant || isCreator || joinSuccess) && !isSettled && (
+        <div className="card p-4 mb-6">
+          <h3 className="text-xs font-bold text-t3 uppercase tracking-wider mb-3">Invite Runners</h3>
+          {isPrivateChallenge && creatorInviteCode && (
+            <div className="mb-3">
+              <p className="text-xs text-t3 mb-1">Invite code</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-edge-subtle rounded-lg px-3 py-2 text-sm text-t1 font-mono">{creatorInviteCode}</code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(creatorInviteCode)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }}
+                  className="px-3 py-2 rounded-lg bg-edge-subtle hover:bg-edge text-t2 text-sm transition-colors"
+                >
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const url = isPrivateChallenge && creatorInviteCode
+                  ? `${window.location.origin}/challenges/${id}?code=${encodeURIComponent(creatorInviteCode)}`
+                  : `${window.location.origin}/challenges/${id}`
+                navigator.clipboard.writeText(url)
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+              }}
+              className="flex-1 flex items-center justify-center gap-2 bg-edge-subtle hover:bg-edge rounded-xl py-2.5 text-sm font-medium text-t1 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+                <path d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              {copied ? 'Link Copied!' : 'Copy Link'}
+            </button>
+            <button
+              onClick={() => {
+                const url = isPrivateChallenge && creatorInviteCode
+                  ? `${window.location.origin}/challenges/${id}?code=${encodeURIComponent(creatorInviteCode)}`
+                  : `${window.location.origin}/challenges/${id}`
+                const text = `Join my FitStake challenge "${challengeName || `Challenge #${id}`}" — ${distFormatted} ${unit}, ${stakeGbp ? `£${stakeGbp.toFixed(2)}` : ''} stake!`
+                if (navigator.share) {
+                  navigator.share({ title: 'FitStake Challenge', text, url })
+                } else {
+                  const waUrl = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`
+                  window.open(waUrl, '_blank')
+                }
+              }}
+              className="flex-1 flex items-center justify-center gap-2 bg-mint-500 hover:bg-mint-600 rounded-xl py-2.5 text-sm font-bold text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              Share
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Code Input (for private challenges) */}
+      {isPrivateChallenge && canJoin && (
+        <div className="mb-4">
+          <label className="block text-sm font-semibold text-t2 mb-2">Invite Code</label>
+          <input
+            type="text"
+            value={inviteCodeInput}
+            onChange={(e) => setInviteCodeInput(e.target.value)}
+            placeholder="Enter the invite code"
+            className="w-full bg-surface border border-edge rounded-xl px-4 py-3 text-t1 placeholder:text-t3 focus:outline-none focus:ring-2 focus:ring-coral-500/40 focus:border-coral-500/60 transition"
+          />
         </div>
       )}
 
