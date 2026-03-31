@@ -126,7 +126,7 @@ export default function CreateChallenge() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to create challenge')
+      if (!res.ok) throw new Error(data.detail ? `${data.error} (${data.detail})` : data.error || 'Failed to create challenge')
       setIsSuccess(true)
       setNewChallengeId(data.challengeId)
       setBalance(data.balance)
