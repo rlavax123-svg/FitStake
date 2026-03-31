@@ -36,7 +36,7 @@ export function getDeployerAddress() {
 }
 
 // Chainlink ETH/USD Price Feed on Base Sepolia
-const ETH_USD_FEED = '0x4aDC67D8bb944e1c054a1a3CD69Cb6323B9FE48A' as const
+const ETH_USD_FEED = '0x4aDC67d8Bb944e1c054a1A3cd69cb6323B9FE48a' as const
 const PRICE_FEED_ABI = [
   {
     name: 'latestRoundData',
