@@ -470,16 +470,19 @@ export default function Profile() {
           </div>
         )}
         {!loading && runs.length > 0 && (
-          <div className="space-y-2 stagger">
+          <div className="space-y-2 stagger mb-4">
             {runs.map((run) => {
               const date = new Date(run.date)
               const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
               const isValid = !run.manual && !run.flagged
 
               return (
-                <div
+                <a
                   key={run.id}
-                  className={`card p-3 flex items-center justify-between ${
+                  href={`https://www.strava.com/activities/${run.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`card card-interactive p-3 flex items-center justify-between ${
                     !isValid ? 'opacity-50' : ''
                   }`}
                 >
@@ -506,10 +509,23 @@ export default function Profile() {
                     </div>
                     {isValid && <div className="text-xs text-mint-500 font-medium">verified</div>}
                   </div>
-                </div>
+                </a>
               )
             })}
           </div>
+        )}
+        {!loading && runs.length > 0 && (
+          <a
+            href="https://www.strava.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 text-xs text-t3 hover:text-[#FC4C02] transition-colors mt-3"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+            </svg>
+            Powered by Strava
+          </a>
         )}
       </div>
     </div>

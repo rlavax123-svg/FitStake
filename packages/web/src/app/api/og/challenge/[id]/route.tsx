@@ -160,7 +160,7 @@ export async function GET(
         <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '28px', fontWeight: 800, color: '#FF6B6B', display: 'flex' }}>FitStake</span>
-            <span style={{ color: '#555', fontSize: '20px', display: 'flex' }}>Bet on your runs</span>
+            <span style={{ color: '#555', fontSize: '20px', display: 'flex' }}>Run with accountability</span>
           </div>
           <span style={{ color: '#444', fontSize: '18px', display: 'flex' }}>Verified by Strava · Settled by smart contracts</span>
         </div>

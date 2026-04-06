@@ -48,8 +48,8 @@ function LandingPage({ onLogin }: { onLogin: () => void }) {
           </h1>
 
           <p className="text-lg sm:text-xl text-t2 max-w-lg mx-auto mb-8 leading-relaxed">
-            Stake real money on running challenges. Hit your goal and split the pot.
-            Fail and you lose your stake. No excuses.
+            Commit real money to running challenges. Hit your goal and earn it back.
+            Miss it and your stake goes to those who showed up. No excuses.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -85,8 +85,8 @@ function LandingPage({ onLogin }: { onLogin: () => void }) {
             },
             {
               num: '03',
-              title: 'Win it',
-              desc: "Hit your goal? You split the pot from those who didn't. Settled instantly to your balance.",
+              title: 'Earn it',
+              desc: "Hit your goal? You get your stake back, plus a share from those who didn't. Settled instantly.",
               accent: 'text-mint-500',
             },
           ].map((step) => (
@@ -106,7 +106,7 @@ function LandingPage({ onLogin }: { onLogin: () => void }) {
         <h2 className="font-display text-2xl font-bold text-t1 mb-6 text-center">Five ways to compete</h2>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
-            { name: 'Group Goal', desc: 'Hit the distance, split the pot', color: 'bg-blue-500' },
+            { name: 'Group Goal', desc: 'Hit the distance, earn your stake back', color: 'bg-blue-500' },
             { name: 'Head-to-Head', desc: 'Most distance by deadline', color: 'bg-orange-500' },
             { name: 'Endurance', desc: 'First to the distance', color: 'bg-purple-500' },
             { name: 'Best Effort', desc: 'Fastest single run', color: 'bg-emerald-500' },
@@ -126,13 +126,37 @@ function LandingPage({ onLogin }: { onLogin: () => void }) {
       </section>
 
       {/* Trust */}
-      <section className="pb-20 text-center">
+      <section className="pb-12 text-center">
         <p className="text-sm text-t3 max-w-md mx-auto leading-relaxed">
           Stakes held in smart contracts — not our database.
           Runs verified by Strava GPS data.
           Nobody can cheat. Not even us.
         </p>
       </section>
+
+      {/* Strava Attribution */}
+      <footer className="pb-20 flex flex-col items-center gap-3">
+        <a
+          href="https://www.strava.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-sm text-t3 hover:text-[#FC4C02] transition-colors"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+          </svg>
+          Powered by Strava
+        </a>
+        <div className="flex items-center gap-4 text-xs text-t3">
+          <a href="https://www.strava.com/legal/api" target="_blank" rel="noopener noreferrer" className="hover:text-t2 transition-colors">
+            Strava API Agreement
+          </a>
+          <span>·</span>
+          <a href="https://www.strava.com/legal/terms" target="_blank" rel="noopener noreferrer" className="hover:text-t2 transition-colors">
+            Strava Terms
+          </a>
+        </div>
+      </footer>
     </div>
   )
 }
@@ -200,7 +224,7 @@ function Dashboard() {
             </svg>
           </div>
           <span className="font-display font-semibold text-t1">Create Challenge</span>
-          <span className="text-xs text-t3">Set a goal, stake money</span>
+          <span className="text-xs text-t3">Set a goal, commit to it</span>
         </Link>
         <Link
           href="/challenges"

@@ -26,7 +26,7 @@ function formatDuration(value: string, unit: DurationUnit): string {
 type UIMode = 'group' | 'h2h' | 'team' | 'best' | 'live'
 
 const UI_TYPES: { mode: UIMode; name: string; desc: string; dot: string }[] = [
-  { mode: 'group', name: 'Group Goal', desc: 'Hit the distance, split the pot', dot: 'bg-blue-500' },
+  { mode: 'group', name: 'Group Goal', desc: 'Hit the distance, earn your stake back', dot: 'bg-blue-500' },
   { mode: 'h2h', name: 'Head-to-Head', desc: '1v1 — race or outlast your opponent', dot: 'bg-orange-500' },
   { mode: 'team', name: 'Team Battle', desc: 'Team vs team — combined distance wins', dot: 'bg-purple-500' },
   { mode: 'best', name: 'Best Effort', desc: '1v1 — fastest single run wins', dot: 'bg-emerald-500' },

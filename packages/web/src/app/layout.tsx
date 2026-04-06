@@ -17,9 +17,9 @@ const plusJakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'FitStake — Bet on Your Runs',
+  title: 'FitStake — Run With Accountability',
   description:
-    'Stake money on your running goals. Complete the challenge and win. Verified by Strava. Settled by smart contracts.',
+    'Commit money to your running goals. Hit your target and earn it back. Verified by Strava. Settled by smart contracts.',
 }
 
 export default function RootLayout({

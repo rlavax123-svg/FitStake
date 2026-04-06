@@ -30,6 +30,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid webhook payload' }, { status: 400 })
   }
 
+  // Handle athlete deauthorization — required by Strava API Agreement
+  if (event.object_type === 'athlete' && event.aspect_type === 'update' && event.updates?.authorized === 'false') {
+    const athleteId = event.owner_id as number
+    await supabaseAdmin
+      .from('users')
+      .update({
+        strava_access_token: null,
+        strava_refresh_token: null,
+        strava_token_expires_at: null,
+      })
+      .eq('strava_athlete_id', athleteId)
+
+    // Remove cached activities for this user
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('strava_athlete_id', athleteId)
+      .single()
+
+    if (user) {
+      await supabaseAdmin
+        .from('activity_cache')
+        .delete()
+        .eq('user_id', user.id)
+    }
+
+    return NextResponse.json({ ok: true, msg: 'deauthorized' })
+  }
+
   // Only care about new/updated activities
   if (event.object_type !== 'activity') {
     return NextResponse.json({ ok: true })
